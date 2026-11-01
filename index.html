@@ -890,7 +890,7 @@ drawMap=function(){
       i.style.border='3px solid '+colOf(a.owner);i.style.borderRadius='6px';i.style.boxSizing='border-box';
       c.appendChild(i);
       const cg=G.ar.filter(z=>z.aboard===a.id).length;
-      const l=document.createElement('span');l.textContent=a.units.length+(a.dagger?'🗡':'')+(cg?'⛵'+cg:'');
+      const l=document.createElement('span');l.textContent=a.units.length+(a.dagger&&a.owner===ME?'🗡':'')+(cg?'⛵'+cg:'');
       l.style.cssText='position:absolute;right:0;bottom:0;z-index:4;background:#000a;color:#fff;font-size:10px;padding:0 2px;border-radius:4px';c.appendChild(l);
       if(a.def||a.atkd){const d=document.createElement('span');d.textContent=a.def?'🛡️':'⚔️';d.style.cssText='position:absolute;right:0;top:0;z-index:4;font-size:11px;background:#fffc;border-radius:4px';c.appendChild(d)}
     }
@@ -1099,9 +1099,10 @@ function bastTip(b){
   return rows.join('<br>');
 }
 let tipEl=null;
-function showTip(h,e){if(!tipEl){tipEl=document.createElement('div');tipEl.style.cssText='position:fixed;z-index:9999;pointer-events:none;max-width:260px;background:#1e1a14;color:#fff;font:12px/1.4 sans-serif;padding:8px 10px;border-radius:8px;border:1px solid #f5c518;box-shadow:0 4px 14px #0008';document.body.appendChild(tipEl)}tipEl.innerHTML=h;tipEl.style.display='block';moveTip(e)}
+function showTip(h,e){if(!tipEl){tipEl=document.createElement('div');tipEl.style.cssText='position:fixed;z-index:9999;pointer-events:none;max-width:260px;background:#1e1a14;color:#fff;font:12px/1.4 sans-serif;padding:8px 10px;border-radius:8px;border:1px solid #f5c518;box-shadow:0 4px 14px #0008';document.body.appendChild(tipEl)}tipEl.innerHTML=h;tipEl.style.display='block';moveTip(e);clearTimeout(showTip.t);showTip.t=setTimeout(hideTip,3000)}
 function moveTip(e){if(!tipEl)return;const w=tipEl.offsetWidth,hh=tipEl.offsetHeight;let x=e.clientX+14,y=e.clientY+14;if(x+w>innerWidth-4)x=e.clientX-w-14;if(y+hh>innerHeight-4)y=e.clientY-hh-14;tipEl.style.left=Math.max(4,x)+'px';tipEl.style.top=Math.max(4,y)+'px'}
-function hideTip(){if(tipEl)tipEl.style.display='none'}
+function hideTip(){clearTimeout(showTip.t);if(tipEl)tipEl.style.display='none'}
+document.addEventListener('pointerdown',()=>hideTip(),true);
 
 /* ---- клики срабатывают по нажатию: перерисовка не «съедает» клик ---- */
 let _sup=0;
