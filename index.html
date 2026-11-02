@@ -124,6 +124,14 @@ button.on{background:linear-gradient(180deg,#f6cd82,#d99a3c);color:#2a1a0a;borde
 #map.hot .ring::before,#map.hot .ring::after{border-width:6px;animation-duration:1s}
 #map.hot .ring::after{animation-delay:.5s}
 @media (min-width:821px){#app{position:relative;align-items:start}#tools{position:absolute;right:16px;top:12px;padding:0;z-index:5}#tools button{font-size:14px;padding:6px 14px}#turn{padding-right:340px}}
+
+/* заставка для телефона: полководцы выходят снизу */
+#intro .prow{position:absolute;left:0;right:0;bottom:26%;display:flex;justify-content:center;gap:clamp(6px,2vw,12px);z-index:3}
+#intro .tk.U{position:relative;bottom:auto;flex:none;width:clamp(62px,20vw,96px);transform:translateY(130vh) rotate(var(--r))}
+#intro.run .tk.U{animation:riseU .95s cubic-bezier(.2,1.25,.4,1) forwards;animation-delay:var(--d)}
+@keyframes riseU{from{transform:translateY(130vh) rotate(var(--r))}to{transform:translateY(0) rotate(var(--r))}}
+#intro.show .tk.U{animation:riseU 0s forwards,bobU 2.4s ease-in-out infinite alternate;animation-delay:0s,var(--d)}
+@keyframes bobU{from{translate:0 0}to{translate:0 -7px}}
 /* заставка */
 #intro{position:fixed;inset:0;z-index:1300;overflow:hidden;cursor:pointer;background:radial-gradient(ellipse at 50% 110%,#7a3f12 0,#3a2212 30%,transparent 62%),radial-gradient(circle at 50% 38%,#6b4a24 0,#2a1a0e 46%,#120b06 100%);transition:opacity .7s}
 #intro.out{opacity:0;pointer-events:none}
@@ -2220,12 +2228,14 @@ if(first){const _mg=window.menuGo;window.menuGo=function(m){if(m==='single'||m==
   let seen=false;try{seen=sessionStorage.getItem('bk_intro')}catch(e){}
   const el=document.createElement('div');el.id='intro';
   const tk=(side,c,k,tx,y,d)=>`<div class="tk ${side}" style="--c:${C[c]};--tx:${tx};--y:${y};--d:${d}s"><img alt="" src="${SPR[c][k]}"></div>`;
-  const toks=[
+  const PH=typeof innerWidth!=='undefined'&&innerWidth<=820;
+  const fg=(c,k,d,r)=>`<div class="tk U" style="--c:${C[c]};--d:${d}s;--r:${r}deg"><img alt="" src="${SPR[c][k]}"></div>`;
+  const toks=PH?`<div class="prow">${fg('green','king',.1,-4)}${fg('blue','queen',.45,3)}${fg('red','general',.8,-3)}${fg('milk','captain',1.15,4)}</div>`:[
     tk('L','green','captain',24,12,.5),tk('L','green','queen',30,23,.2),tk('L','green','general',36,13,.0),tk('L','green','king',41,25,.35),
     tk('R','red','captain',24,12,.5),tk('R','red','queen',30,23,.2),tk('R','red','general',36,13,.0),tk('R','red','king',41,25,.35)
   ].join('');
-  let sp='';for(let i=0;i<14;i++){const a=Math.PI*(i/13);sp+=`<i class="sp" style="--sx:${Math.round(Math.cos(a)*(120+Math.random()*120))}px;--sy:${Math.round(-Math.sin(a)*(90+Math.random()*120))}px"></i>`}
-  el.innerHTML=`<div class="gr"></div>${toks}<div class="flash"></div>${sp}<div class="swd">⚔</div><div class="ttl"><h1>Битва королевств</h1><div class="shields">${shields()}</div></div><div class="vic">Зелёное королевство побеждает в первой битве</div><button class="enter" type="button">Войти в королевство</button>`;
+  let sp='';if(!PH)for(let i=0;i<14;i++){const a=Math.PI*(i/13);sp+=`<i class="sp" style="--sx:${Math.round(Math.cos(a)*(120+Math.random()*120))}px;--sy:${Math.round(-Math.sin(a)*(90+Math.random()*120))}px"></i>`}
+  el.innerHTML=`<div class="gr"></div>${toks}${PH?'':'<div class="flash"></div>'}${sp}${PH?'':'<div class="swd">⚔</div>'}<div class="ttl"><h1>Битва королевств</h1><div class="shields">${shields()}</div></div>${PH?'':'<div class="vic">Зелёное королевство побеждает в первой битве</div>'}<button class="enter" type="button">Войти в королевство</button>`;
   let done=false,timers=[];
   const T=(f,ms)=>timers.push(setTimeout(f,ms));
   function close(){
@@ -2258,6 +2268,7 @@ if(first){const _mg=window.menuGo;window.menuGo=function(m){if(m==='single'||m==
   function run(){
     if(done||el.classList.contains('run'))return;
     void el.offsetWidth;el.classList.add('run');
+    if(PH){const ls=el.querySelectorAll('.tk.U');ls[ls.length-1].addEventListener('animationend',e=>{if(e.animationName==='riseU')T(()=>{el.classList.add('show');T(close,12000)},350)});T(()=>{if(!el.classList.contains('show')){el.classList.add('show');T(close,12000)}},4200);return}
     const last=el.querySelector('.tk.R[style*="--d:.35s"]');
     if(last)last.addEventListener('animationend',e=>{if(e.animationName==='chR')clash()});
     T(clash,5200);
