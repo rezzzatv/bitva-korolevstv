@@ -109,6 +109,11 @@ button.on{background:linear-gradient(180deg,#f6cd82,#d99a3c);color:#2a1a0a;borde
 .ch{transition:transform .12s;background:#0003}.ch:hover{transform:translateY(-3px) scale(1.06)}
 #hint{background:linear-gradient(90deg,#4a3320,#33251a);border:2px solid var(--brass);box-shadow:0 4px 18px #0006}
 :root[data-theme=light] #hint{background:linear-gradient(90deg,#fffaf0,#f3e5c4)}
+.cgrid{display:grid;grid-template-columns:1fr 1fr;gap:6px 10px}
+.cc{display:flex;align-items:center;gap:6px;padding:5px 10px;border-radius:10px;background:#0003;border:1px solid var(--ln);font-size:17px;white-space:nowrap}
+.cc b{font-size:19px;color:var(--ac)}
+.coin{width:20px;height:20px;flex:none;filter:drop-shadow(0 1px 1px #0006)}
+:root[data-theme=light] .cc{background:#fff8}
 /* заставка */
 #intro{position:fixed;inset:0;z-index:1300;overflow:hidden;cursor:pointer;background:radial-gradient(ellipse at 50% 110%,#7a3f12 0,#3a2212 30%,transparent 62%),radial-gradient(circle at 50% 38%,#6b4a24 0,#2a1a0e 46%,#120b06 100%);transition:opacity .7s}
 #intro.out{opacity:0;pointer-events:none}
@@ -1168,7 +1173,7 @@ drawSide=function(){
   h+=G.over?`<div class="t">${G.msg}</div>`:(G.phase==='move'?`<div>Ходит: <b>${G.cur===ME?'вы':'игрок '+(G.cur+1)}</b> ${dot(G.cur)}</div>`:'');
   if(G.note)h+=`<div style="background:#f5c51833;border:1px solid #f5c518;border-radius:8px;padding:6px 8px;margin:8px 0">${G.note}</div>`;
   if(!G.over&&G.phase==='move'&&G.cur!==ME&&!BT)h+=`<div style="opacity:.85;margin-top:4px">Ходят соперники. Сражения начнутся после хода последнего игрока. Объявлено нападений: ${G.decl.length}.</div>`;
-  h+='<h3>Монеты</h3>'+[0,1,2,3].map(s=>`<span style="margin-right:10px">${dot(s)} ${s===ME?'вы':s+1}: ${G.pl[s].alive?G.pl[s].coins:'✖'}</span>`).join('');
+  h+='<h3>Монеты</h3><div class="cgrid">'+[0,1,2,3].map(s=>`<span class="cc">${dot(s)} <span>${s===ME?'вы':s+1}:</span> <b>${G.pl[s].alive?G.pl[s].coins:'✖'}</b>${G.pl[s].alive?'<svg class="coin" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10.5" fill="#e8b955" stroke="#8a5a12" stroke-width="1.6"/><circle cx="12" cy="12" r="7" fill="none" stroke="#b9822a" stroke-width="1.4"/><path d="M12 7.5v9M9.5 9.5h4a1.6 1.6 0 0 1 0 3h-3a1.6 1.6 0 0 0 0 3h4" fill="none" stroke="#8a5a12" stroke-width="1.5" stroke-linecap="round"/></svg>':''}</span>`).join('')+'</div>';
   {
     let inB=0,inP=0,outB=0,outP=0,mt=0;
     for(const b of G.bas){const ow=G.co[b.seat];if(b.occ===ME&&ow!==null&&ow!==ME&&alive(ow))inB++;if(ow===ME&&b.occ!==null&&b.occ!==ME)outB++}
