@@ -112,6 +112,7 @@ button.on{background:linear-gradient(180deg,#f6cd82,#d99a3c);color:#2a1a0a;borde
 /* заставка */
 #intro{position:fixed;inset:0;z-index:1300;overflow:hidden;cursor:pointer;background:radial-gradient(ellipse at 50% 110%,#7a3f12 0,#3a2212 30%,transparent 62%),radial-gradient(circle at 50% 38%,#6b4a24 0,#2a1a0e 46%,#120b06 100%);transition:opacity .7s}
 #intro.out{opacity:0;pointer-events:none}
+#intro.out .tk{transition:transform .7s,opacity .7s;opacity:0}
 #intro .gr{position:absolute;left:0;right:0;bottom:0;height:34%;background:linear-gradient(180deg,#3a2616,#1b110a);border-top:4px solid #5a3b1e}
 #intro .gr::before{content:"";position:absolute;inset:0;background:repeating-linear-gradient(90deg,#0000 0 46px,#0000002e 46px 48px)}
 #intro .tk{position:absolute;bottom:calc(var(--y)*1%);width:clamp(62px,12.5vw,118px);aspect-ratio:1;border-radius:12px;border:4px solid var(--c);box-shadow:0 8px 0 #0008,0 0 26px color-mix(in srgb,var(--c) 45%,transparent);overflow:hidden;z-index:3}
@@ -126,11 +127,11 @@ button.on{background:linear-gradient(180deg,#f6cd82,#d99a3c);color:#2a1a0a;borde
 #intro .tk.L.fall{animation:fallL .9s ease-in forwards}
 @keyframes fallR{from{transform:translateX(calc(var(--tx)*-1vw))}to{transform:translate(calc(var(--tx)*-1vw + 34vw),30px) rotate(70deg);opacity:0}}
 @keyframes fallL{from{transform:translateX(calc(var(--tx)*1vw))}to{transform:translate(calc(var(--tx)*1vw - 34vw),30px) rotate(-70deg);opacity:0}}
-#intro .flash{position:absolute;left:50%;bottom:22%;width:12px;height:12px;border-radius:50%;background:#fff3c4;transform:translate(-50%,50%) scale(0);z-index:4;box-shadow:0 0 60px 30px #ffd36a}
-#intro .flash.go{animation:boom .8s ease-out forwards}
-@keyframes boom{0%{transform:translate(-50%,50%) scale(0);opacity:1}60%{opacity:.9}100%{transform:translate(-50%,50%) scale(26);opacity:0}}
+#intro .flash{position:absolute;left:50%;bottom:22%;width:12px;height:12px;border-radius:50%;background:radial-gradient(circle,#fff3c4 0,#ffd36a88 45%,#ffd36a00 70%);transform:translate(-50%,50%) scale(0);z-index:4}
+#intro .flash.hit{animation:boom .7s ease-out forwards}
+@keyframes boom{0%{transform:translate(-50%,50%) scale(0);opacity:1}60%{opacity:.9}100%{transform:translate(-50%,50%) scale(16);opacity:0}}
 #intro .sp{position:absolute;left:50%;bottom:24%;width:6px;height:6px;border-radius:50%;background:#ffd36a;z-index:4;opacity:0;box-shadow:0 0 8px 2px #ffb347}
-#intro .sp.go{animation:spark 1s ease-out forwards}
+#intro .sp.hit{animation:spark 1s ease-out forwards}
 @keyframes spark{0%{opacity:1;transform:translate(0,0)}100%{opacity:0;transform:translate(var(--sx),var(--sy))}}
 #intro.shake{animation:shk .35s}
 @keyframes shk{20%{transform:translate(-6px,3px)}40%{transform:translate(6px,-3px)}60%{transform:translate(-4px,2px)}80%{transform:translate(3px,-2px)}}
@@ -139,8 +140,15 @@ button.on{background:linear-gradient(180deg,#f6cd82,#d99a3c);color:#2a1a0a;borde
 #intro .ttl h1{margin:0;font-family:var(--fd);font-weight:400;font-size:clamp(40px,10vw,92px);line-height:1;background:linear-gradient(180deg,#fff0b8,#e8b955 45%,#a8701c);-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 3px 0 #3a2208) drop-shadow(0 8px 18px #000a)}
 #intro .ttl .shields{display:flex;justify-content:center;gap:clamp(10px,3vw,24px);margin-top:14px}
 #intro .sh{width:clamp(42px,9vw,70px);filter:drop-shadow(0 6px 6px #000a)}
-#intro .go{position:absolute;left:0;right:0;bottom:8%;text-align:center;color:#f7e8cc;font-size:18px;z-index:5;opacity:0;transition:opacity .8s .6s}
-#intro.show .go{opacity:.85;animation:blink 1.6s ease-in-out infinite 1.5s}
+#intro .enter{white-space:nowrap;position:absolute;left:50%;bottom:8%;transform:translateX(-50%) translateY(12px);z-index:6;opacity:0;pointer-events:none;font-size:22px;padding:14px 34px;border-radius:999px;border:3px solid #f6cd82;background:linear-gradient(180deg,#f6cd82,#d99a3c);color:#2a1a0a;font-weight:700;box-shadow:0 8px 24px #000a;transition:opacity .7s .5s,transform .7s .5s}
+#intro.show .enter{opacity:1;transform:translateX(-50%);pointer-events:auto}
+#intro .vic{position:absolute;left:0;right:0;bottom:48%;text-align:center;z-index:5;opacity:0;font-size:20px;color:#f7e8cc;text-shadow:0 2px 8px #000;transition:opacity .8s}
+#intro.show .vic{opacity:.9}
+#intro .swd{position:absolute;left:50%;bottom:26%;font-size:clamp(60px,12vw,120px);z-index:5;opacity:0;transform:translate(-50%,0) scale(.3);filter:drop-shadow(0 0 18px #ffd36a)}
+#intro .swd.hit{animation:swd 1s ease-out forwards}
+@keyframes swd{0%{opacity:0;transform:translate(-50%,0) scale(.3)}25%{opacity:1;transform:translate(-50%,-10px) scale(1.15)}70%{opacity:1;transform:translate(-50%,-14px) scale(1)}100%{opacity:0;transform:translate(-50%,-30px) scale(1)}}
+#intro .tk.L.win{animation:win 1.2s ease-in-out infinite alternate}
+@keyframes win{from{transform:translateX(calc(var(--tx)*1vw)) translateY(0)}to{transform:translateX(calc(var(--tx)*1vw)) translateY(-8px)}}
 @keyframes blink{50%{opacity:.35}}
 @media (prefers-reduced-motion:reduce){#intro .tk{animation:none!important;transform:translateX(calc(var(--tx)*1vw))}#intro .tk.R{transform:translateX(calc(var(--tx)*-1vw))}#intro .ttl{opacity:1;transform:none}}
 /* конец партии */
@@ -2181,7 +2189,7 @@ menuEl.innerHTML=`<div class="scene"><div class="stars"></div>${ridge}${emb}
   <button class="sec" onclick="menuGo('net')">По сети<small>скоро</small></button>
  </div>
 </div>
-<div class="port">${fig('green','king',-4)}${fig('blue','queen',3)}${fig('red','general',-3)}${fig('milk','HC',4)}</div>
+<div class="port">${fig('green','king',-4)}${fig('blue','queen',3)}${fig('red','general',-3)}${fig('milk','captain',4)}</div>
 <div class="note" id="mnote"></div></div>`;
 if(first){const _mg=window.menuGo;window.menuGo=function(m){if(m==='single'||m==='learn'){try{localStorage.setItem('bk_seen','1')}catch(e){}}return _mg(m)}}
 
@@ -2191,11 +2199,11 @@ if(first){const _mg=window.menuGo;window.menuGo=function(m){if(m==='single'||m==
   const el=document.createElement('div');el.id='intro';
   const tk=(side,c,k,tx,y,d)=>`<div class="tk ${side}" style="--c:${C[c]};--tx:${tx};--y:${y};--d:${d}s"><img alt="" src="${SPR[c][k]}"></div>`;
   const toks=[
-    tk('L','green','HI',26,13,.5),tk('L','green','LC',31,22,.2),tk('L','green','HC',36,14,.0),tk('L','green','king',40,24,.35),
-    tk('R','red','LI',26,13,.5),tk('R','red','LC',31,22,.2),tk('R','red','HC',36,14,.0),tk('R','red','general',40,24,.35)
+    tk('L','green','captain',24,12,.5),tk('L','green','queen',30,23,.2),tk('L','green','general',36,13,.0),tk('L','green','king',41,25,.35),
+    tk('R','red','captain',24,12,.5),tk('R','red','queen',30,23,.2),tk('R','red','general',36,13,.0),tk('R','red','king',41,25,.35)
   ].join('');
   let sp='';for(let i=0;i<14;i++){const a=Math.PI*(i/13);sp+=`<i class="sp" style="--sx:${Math.round(Math.cos(a)*(120+Math.random()*120))}px;--sy:${Math.round(-Math.sin(a)*(90+Math.random()*120))}px"></i>`}
-  el.innerHTML=`<div class="gr"></div>${toks}<div class="flash"></div>${sp}<div class="ttl"><h1>Битва королевств</h1><div class="shields">${shields()}</div></div><div class="go">Нажмите, чтобы начать</div>`;
+  el.innerHTML=`<div class="gr"></div>${toks}<div class="flash"></div>${sp}<div class="swd">⚔</div><div class="ttl"><h1>Битва королевств</h1><div class="shields">${shields()}</div></div><div class="vic">Зелёное королевство побеждает в первой битве</div><button class="enter" type="button">Войти в королевство</button>`;
   let done=false,timers=[];
   const T=(f,ms)=>timers.push(setTimeout(f,ms));
   function close(){
@@ -2210,15 +2218,14 @@ if(first){const _mg=window.menuGo;window.menuGo=function(m){if(m==='single'||m==
   document.addEventListener('keydown',function k(e){if(!done&&(e.key==='Enter'||e.key===' '||e.key==='Escape')){close()}},{once:true});
   // столкновение
   T(()=>{
-    el.querySelector('.flash').classList.add('go');
-    el.querySelectorAll('.sp').forEach(x=>x.classList.add('go'));
+    el.querySelector('.flash').classList.add('hit');el.querySelector('.swd').classList.add('hit');
+    el.querySelectorAll('.sp').forEach(x=>x.classList.add('hit'));
     el.classList.add('shake');
     el.querySelectorAll('.tk.R').forEach((x,i)=>setTimeout(()=>{x.classList.add('fall')},i*90));
     try{window.__snd&&window.__snd.play('slash')}catch(e){}
   },2900);
-  T(()=>el.classList.add('show'),3500);
-  T(()=>{el.querySelectorAll('.tk.L').forEach(x=>{x.style.transition='transform .6s';})},3600);
-  T(close,9500);
+  T(()=>{el.classList.add('show');const tw=el.querySelector('.tk').offsetWidth,W=innerWidth,gap=tw*1.12,st=(W-gap*3-tw)/2,dest=[0,1,2,3].map(i=>(st+i*gap)/W*100);el.querySelectorAll('.tk.L').forEach((x,i)=>{x.style.transition='margin-left 1s ease,bottom 1s ease';x.style.marginLeft=(dest[i]-parseFloat(x.style.getPropertyValue('--tx')))+'vw';x.style.bottom='25%';x.style.animationDelay='0s';x.classList.add('win')})},3500);
+  T(close,13000);
 })();
 
 /* финал партии */
