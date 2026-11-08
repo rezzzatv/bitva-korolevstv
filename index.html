@@ -1383,6 +1383,7 @@ function supportAt(p,a,c){
   return s;
 }
 function smartBestCell(a,p,L,T,gs,defender){
+  if(L===2)return hardBestCell(a,p,T,gs,defender);
   const mine=power(a),cap=a.kind==='captain';
   const cand=[...reach(a)];
   cand.push(a.pos.slice());
@@ -1427,6 +1428,7 @@ function smartBestCell(a,p,L,T,gs,defender){
   return best;
 }
 function smartAttack(a,p,L){
+  if(L===2)return hardAttack(a,p);
   if(!G.ar.includes(a)||a.atkd||a.def||a.aboard)return;
   const tg=G.ar.filter(t=>canAttack(a,t));
   if(!tg.length)return;
@@ -1520,7 +1522,7 @@ function botTurnSmart(p,L){
     defender=onFlag||cl[0]||null;
   }
   list=L===2?list.sort((a,b)=>power(b)-power(a)):sh(list);
-  let threats=L===2?flagThreats(p):[];
+  let threats=L===2?hardFlagThreats(p):[];
   if(threats.length){
     // все силы на защиту флага: ближайшие ходят первыми, армия короля тоже участвует
     list=G.ar.filter(a=>a.owner===p&&a.kind!=='captain').sort((a,b)=>cheb(a.pos,fl)-cheb(b.pos,fl));
@@ -1536,7 +1538,7 @@ function botTurnSmart(p,L){
       if(fc){moveArmy(a,fc);if(G.over)return draw();draw();return setTimeout(()=>step(i+1),300)}
     }
     if(L===2&&a.kind!=='captain'&&threats.length){
-      threats=flagThreats(p);
+      threats=hardFlagThreats(p);
       if(threats.length){
         const fo=armiesAt(fl[0],fl[1]);
         const onF=same(a.pos,fl);
@@ -1557,15 +1559,11 @@ function botTurnSmart(p,L){
           tg.sort((x,y)=>power(y)-power(x));
           if(tg.length){
             if(a.dagger){const dg=tg.find(t=>canDagger(a,t));if(dg){useDagger(a,dg);draw();return setTimeout(()=>step(i+1),300)}}
-            declare(a,tg[0]);
+            hardAttack(a,p);
           }
         }
         draw();return setTimeout(()=>step(i+1),300);
       }
-    }
-    if(L===2&&a.kind!=='captain'&&!a.aboard){
-      const Tq=threatMap(p),Uq=enemyUnion(p),qc=quickWinCell(a,p,Tq,Uq);
-      if(qc){moveArmy(a,qc);draw();return setTimeout(()=>step(i+1),300)}
     }
     const T=threatMap(p);
     const bs=bastAt(a.pos[0],a.pos[1]);
@@ -1574,7 +1572,7 @@ function botTurnSmart(p,L){
     const c=smartBestCell(a,p,L,T,gs,a===defender);
     if(c&&!same(c,a.pos))moveArmy(a,c);
     if(G.over)return draw();
-    if(a.kind!=='captain'&&G.ar.includes(a)&&a.units.length>=3){
+    if(a.kind!=='captain'&&G.ar.includes(a)&&a.units.length>=3&&L!==2){
       const b2=bastAt(a.pos[0],a.pos[1]);
       if(b2&&b2.gar===null&&(G.co[b2.seat]===p||b2.occ===p))garLeave(a);
       else if(L===2&&estAt(a)&&G.co[G.est[key(a.pos[0],a.pos[1])].seat]===p&&!G.orph[key(a.pos[0],a.pos[1])])estLeave(a);
@@ -1698,6 +1696,7 @@ function mvPri(m){
   return o.tent||o.cmd?1000:(PV[o.k]||100);
 }
 function botMoveSmart(q,L){
+  if(L===2)return hardBattleMove(q);
   // армия осталась только с полководцем: не мучить игрока, а сдаться (убежать за край)
   if(!isDis(q)&&!(q.castle&&q.isDef)){
     const un=q.pieces.filter(p=>p.alive&&!p.tent&&!p.cmd).length;
@@ -1732,6 +1731,160 @@ function botMoveSmart(q,L){
     if(!ok)break;
     sc.sort((x,y)=>y[1]-x[1]);
     ranked=sc;best=sc[0][0];
+  }
+  bstep(best[0],best[1],best[2],best[3]);
+}
+
+/* Hard AI: legal routes, real battle participants and reversible tactical search. */
+function hardReachAt(a,pos){
+  // Work on a copy: strategic forecasts must not change live army flags.
+  return reach({...a,pos:pos.slice(),moved:false,def:false,atkd:false,noMove:-1});
+}
+function hardFlagThreats(p){
+  const flag=FLAGP[p],guarded=armiesAt(...flag).some(a=>a.owner===p);
+  return G.ar.filter(e=>e.owner!==p&&alive(e.owner)&&!e.aboard&&e.kind!=='captain'&&
+    (adjS(e.pos,flag)||hardReachAt(e,e.pos).some(c=>same(c,flag)||(guarded&&adjS(c,flag)))));
+}
+function hardRoutes(a,goals){
+  const out=new Map(),seen=new Set([key(...a.pos)]),queue=[];
+  for(const c of reach(a)){const k=key(...c);seen.add(k);queue.push({c,first:k,d:1})}
+  // Breadth first search counts legal turns, including slower enemy castles.
+  for(let i=0;i<queue.length;i++){
+    const n=queue[i];
+    for(const[g,w]of goals)if(same(g,n.c)||(armiesAt(...g).some(e=>e.owner!==a.owner)&&adjS(g,n.c))){
+      out.set(n.first,Math.max(out.get(n.first)||-1e6,w*4-7*n.d));
+    }
+    if(n.d>=8)continue;
+    for(const c of hardReachAt(a,n.c)){
+      const k=key(...c);if(seen.has(k))continue;
+      seen.add(k);queue.push({c,first:n.first,d:n.d+1});
+    }
+  }
+  return out;
+}
+function hardForces(a,t){
+  const dec=G.decl.find(d=>d.def===t.id);
+  const attackers=(dec?dec.atk.map(armyById):[]).filter(z=>z&&!z.aboard&&adjS(z.pos,t.pos));
+  if(!attackers.includes(a))attackers.push(a);
+  // startBoard admits at most three attackers and two from each owner.
+  const selected=[],per={};
+  for(const z of attackers){if(selected.length===3)break;if((per[z.owner]||0)>=2)continue;selected.push(z);per[z.owner]=(per[z.owner]||0)+1}
+  const helper=selected.length<3?G.ar.find(z=>z!==t&&z.owner===t.owner&&!z.aboard&&adjS(z.pos,t.pos)&&!(G.noHelp||[]).includes(z.id)):null;
+  return {attack:selected.reduce((s,z)=>s+power(z),0),defend:power(t)+(helper?power(helper):0)};
+}
+function hardAttack(a,p){
+  if(!G.ar.includes(a)||a.atkd||a.def||a.aboard)return;
+  const targets=G.ar.filter(t=>canAttack(a,t));
+  const dagger=targets.filter(t=>canDagger(a,t)).sort((x,y)=>
+    (power(y)+(onFlag(y)?12:0)+(y.dagger?4:0))-(power(x)+(onFlag(x)?12:0)+(x.dagger?4:0)));
+  if(dagger.length){useDagger(a,dagger[0]);return}
+  let best=null,score=-Infinity;
+  for(const t of targets){
+    const f=hardForces(a,t),ratio=f.attack/Math.max(1,f.defend);
+    // Losing the real king eliminates the whole kingdom; do not gamble him.
+    if(ratio<(a.kind==='king'?1.8:1.22))continue;
+    const v=ratio+(t.kind==='king'?4:0)+(onFlag(t)?2:0);
+    if(v>score){score=v;best=t}
+  }
+  if(best)declare(a,best);
+}
+function hardBestCell(a,p,T,goals,defender){
+  const candidates=[...reach(a),a.pos.slice()],routes=hardRoutes(a,goals);
+  const enemies=G.ar.filter(e=>e.owner!==p&&alive(e.owner)&&!e.aboard);
+  const predictions=enemies.map(e=>({e,cells:[e.pos,...hardReachAt(e,e.pos)]}));
+  const home=FLAGP[p],emergency=hardFlagThreats(p).length>0;
+  let best=a.pos,bs=-Infinity;
+  for(const c of candidates){
+    const stay=same(c,a.pos);let score=routes.get(key(...c))??-35;
+    if(a.kind!=='captain'&&flagTarget(p,c))return c;
+    const friendly=G.ar.filter(z=>z!==a&&z.owner===p&&!z.aboard&&adjS(z.pos,c));
+    // At most one adjacent army can join a defence; it contributes its full force.
+    const defence=power(a)+Math.max(0,...friendly.map(power));
+    let danger=0,daggerRisk=false;
+    for(const{e,cells}of predictions){
+      if(!cells.some(z=>adjS(z,c)))continue;
+      danger+=power(e);
+      if(e.dagger&&['queen','general','xking'].includes(e.kind)&&a.kind!=='king')daggerRisk=true;
+    }
+    score-=Math.max(0,danger-defence)*9;
+    if(daggerRisk)score-=100;
+    if(a.kind==='king')score-=danger*15;
+    for(const t of enemies)if(adjS(t.pos,c)){
+      const f=hardForces({...a,pos:c},t),ratio=f.attack/Math.max(1,f.defend);
+      if(ratio>=(a.kind==='king'?1.8:1.22))score+=22+(t.kind==='king'?60:0)+(onFlag(t)?30:0);
+      if(a.dagger&&t.kind!=='king')score+=60+(onFlag(t)?40:0);
+    }
+    // A defender may intercept, but must not abandon the flag for loot.
+    if(defender){score-=cheb(c,home)*(emergency?18:7);if(same(c,home))score+=emergency?150:45}
+    if(a.kind!=='captain'){
+      const e=G.est[key(...c)];
+      if(e&&!e.burned&&G.co[e.seat]!==null&&G.co[e.seat]!==p)score+=8+e.val*3;
+      if(same(c,home)&&G.pl[p].res.length&&a.units.length+(a.dagger?1:0)<5)score+=30;
+    }
+    if(stay&&!defender)score-=inCastle(a)||ownPort(a)?2:8;
+    if(score>bs){bs=score;best=c}
+  }
+  return best;
+}
+function hardDo(m){
+  const snapshot={pieces:BT.P.map(p=>[p,p.x,p.y,p.alive,p.fled]),
+    parts:BT.parts.map(q=>[q,q.cmdDead,q.cmdFled,q.tentLost]),kingDown:BT.kingDown};
+  bDo(m);
+  const victim=m[0]==='m'?snapshot.pieces.find(z=>z[0]!==m[1]&&z[3]&&z[1]===m[2]&&z[2]===m[3]):null;
+  if(victim){const p=victim[0];if(p.cmd&&p.k==='king')BT.kingDown={killer:m[1].owner,victim:p.owner}}
+  for(const q of BT.parts)if(isDis(q)&&q.castle&&q.isDef&&!snapshot.parts.some(z=>z[0]===q&&(z[1]||z[2]||z[3]))){q.cmdDead=true;for(const p of q.pieces)if(!p.tent)p.alive=false;
+    if(q.ar.kind==='king')BT.kingDown={killer:m[1].owner,victim:q.owner};}
+  return snapshot;
+}
+function hardUndo(s){
+  for(const[p,x,y,alive,fled]of s.pieces)Object.assign(p,{x,y,alive,fled});
+  for(const[q,cmdDead,cmdFled,tentLost]of s.parts)Object.assign(q,{cmdDead,cmdFled,tentLost});
+  if(s.kingDown===undefined)delete BT.kingDown;else BT.kingDown=s.kingDown;
+}
+function hardBattleEval(me){
+  if(BT.kingDown)return BT.kingDown.victim===me?-1000000:BT.kingDown.killer===me?1000000:0;
+  let score=bEval(me);
+  for(const q of BT.parts){
+    if(isDis(q))continue;
+    const sign=q.owner===me?1:-1;
+    for(const p of q.pieces)if(p.alive&&(p.cmd||p.tent)){
+      // Threatening a king is much more consequential than winning a minor army.
+      if(batk(p.x,p.y,q.owner))score-=sign*(p.k==='king'?12000:1800);
+    }
+  }
+  return score;
+}
+function hardBattleSearch(me,ci,depth,alpha,beta,budget){
+  if(++budget.nodes>budget.limit||Date.now()>budget.until){budget.exhausted=true;return hardBattleEval(me)}
+  if(BT.kingDown||depth<=0||BT.parts.filter(q=>q.owner===me).every(isDis)||BT.parts.filter(q=>q.owner!==me).every(isDis))return hardBattleEval(me);
+  const q=BT.parts[ci],next=(ci+1)%BT.parts.length,moves=bGen(q).sort((a,b)=>mvPri(b)-mvPri(a));
+  if(!moves.length)return hardBattleSearch(me,next,depth-1,alpha,beta,budget);
+  const maximize=q.owner===me;let best=maximize?-Infinity:Infinity;
+  for(const m of moves){
+    const state=hardDo(m);let value;
+    try{value=hardBattleSearch(me,next,depth-1,alpha,beta,budget)}finally{hardUndo(state)}
+    best=maximize?Math.max(best,value):Math.min(best,value);
+    if(maximize)alpha=Math.max(alpha,best);else beta=Math.min(beta,best);
+    if(alpha>=beta||budget.exhausted)break;
+  }
+  return best;
+}
+function hardBattleMove(q){
+  let ranked=bGen(q).sort((a,b)=>mvPri(b)-mvPri(a)).map(m=>[m,0]);
+  if(!ranked.length){BT.cur=(BT.cur+1)%BT.parts.length;BT.n++;return turnLoop()}
+  let best=ranked[0][0];const budget={nodes:0,limit:45000,until:Date.now()+220,exhausted:false};
+  // Complete a shallow pass for every move before spending the remaining budget deeper.
+  for(let depth=1;depth<=5;depth++){
+    const scored=[];let alpha=-Infinity;
+    for(const[m]of ranked){
+      const state=hardDo(m);let value;
+      try{value=hardBattleSearch(q.owner,(BT.cur+1)%BT.parts.length,depth-1,alpha,Infinity,budget)}finally{hardUndo(state)}
+      if(budget.exhausted)break;
+      scored.push([m,value]);alpha=Math.max(alpha,value);
+    }
+    if(budget.exhausted)break;
+    ranked=scored.sort((a,b)=>b[1]-a[1]);best=ranked[0][0];
+    if(ranked[0][1]>=1000000)break;
   }
   bstep(best[0],best[1],best[2],best[3]);
 }
