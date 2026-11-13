@@ -1095,7 +1095,7 @@ drawMap=function(){
       const t=document.createElement('span');t.textContent='🛡';t.style.cssText='position:absolute;right:-1px;bottom:-1px;font-size:10px;line-height:1;background:#fffd;border-radius:6px';g.appendChild(t);
       c.appendChild(g)}
     for(const a of armiesAt(x,y)){
-      const i=mkArmy(a.owner,a.kind);if(a.owner!==ME)i.removeAttribute('title');
+      const i=mkArmy(a.owner,a.kind);i.dataset.aid=a.id;if(a.owner!==ME)i.removeAttribute('title');
       if(G.sel===a.id)i.style.outline='3px solid #f5c518';
       i.style.border='3px solid '+colOf(a.owner);i.style.borderRadius='6px';i.style.boxSizing='border-box';
       c.appendChild(i);
@@ -1238,13 +1238,12 @@ drawSide=function(){
     for(let i=0;i<4;i++){if(G.pocc[i]===ME&&G.co[i]!==null&&G.co[i]!==ME&&alive(G.co[i]))inP++;if(G.co[i]===ME&&G.pocc[i]!==null&&G.pocc[i]!==ME)outP++}
     for(const a of G.ar)if(a.owner===ME&&!a.aboard&&!inCastle(a)&&!ownPort(a)&&!a.def&&!a.atkd&&a.noMove!==G.tn&&!(G.cur===ME&&a.moved))mt++;
     const inc=inB+inP,out=outB+outP+mt,sg=n=>(n>0?'+':n<0?'−':'')+Math.abs(n);
-    h+=`<div style="margin:8px 0;padding:6px 8px;border:1px solid var(--ln);border-radius:8px;font-size:13px;line-height:1.5">
-      <b>Баланс монет</b><br>
+    h+=`<details class="bal" ${window.__balOpen?'open':''} ontoggle="window.__balOpen=this.open"><summary><b>Баланс монет</b> · <span>итого за ход:</span> <b>${sg(inc-out)}</b></summary><div>
       Раунд, уже: получено <b style="color:#3a9a50">+${G.inc||0}</b>, потрачено <b style="color:#c8322f">−${G.exp||0}</b>${G.pinc!==undefined?` <span style="opacity:.7">(прошлый раунд: +${G.pinc} / −${G.pexp})</span>`:''}<br>
       Ожидаемый доход за ход: <b style="color:#3a9a50">+${inc}</b> <span style="opacity:.75">(захваченные бастионы врагов: ${inB}, порты: ${inP})</span><br>
       Ожидаемый расход: <b style="color:#c8322f">−${out}</b> <span style="opacity:.75">(ваши бастионы у врага: ${outB}, порты: ${outP}, содержание армий вне замка: ${mt})</span><br>
       Итого за ход: <b>${sg(inc-out)}</b>
-    </div>`;
+    </div></details>`;
   }
   if(BT){
     if(BT.stage==='place'){
@@ -1261,10 +1260,10 @@ drawSide=function(){
       }else h+='<div>Расставляется соперник…</div>';
     }else{
       const q=BT.parts[BT.cur];
-      h+='<h3>Бой</h3><div>'+(q&&isHum(q.owner)?'Ваш ход: нажмите фигуру и зелёную клетку.':'Ходит соперник…')+'</div>';
+      h+='<h3>Бой</h3><div>'+(q&&isHum(q.owner)?'Ваш ход: нажмите фигуру и зелёную клетку.':'Ходит соперник…')+'</div>';if(window.__btInfo)h+=window.__btInfo(q);
       h+='<div style="opacity:.75;margin:4px 0">Победа: убить полководца (золотая рамка) или встать на шатёр. Проигравшие не могут атаковать, они бегут за край поля, победитель их догоняет.</div>';
       if(q&&isHum(q.owner)&&BT.sel&&canExit(BT.sel))h+='<button onclick="bexit()">🏃 Сбежать</button>';
-      if(BT.hum&&new Set(BT.parts.filter(z=>!isDis(z)).map(z=>z.owner)).size>=2)h+='<div style="margin-top:8px"><button onclick="offerDraw()">🤝 Предложить ничью</button> <span style="opacity:.7;font-size:11px">ходов без потерь: '+(BT.n-BT.lastCap)+'</span></div>'+(BT.drawNo!=null&&BT.n-BT.drawNo<=3&&BT.drawNo>=BT.lastCap?'<div style="margin-top:6px;padding:6px 8px;border-radius:8px;background:#c8322f33;border:1px solid #c8322f">✋ Соперник отказался от ничьей: бой ещё идёт активно. Соперник согласится, если 8 ходов подряд пройдут без потерь (сейчас: '+(BT.n-BT.lastCap)+').</div>':'');
+      if(BT.hum&&new Set(BT.parts.filter(z=>!isDis(z)).map(z=>z.owner)).size>=2)h+='<div style="margin-top:8px"><button onclick="offerDraw()">🤝 Предложить ничью</button> <div class="dprog"><span>Ходов без потерь:</span> <span class="dbar"><i style="width:'+Math.min(100,(BT.n-BT.lastCap)/8*100)+'%"></i></span> <b>'+Math.min(8,BT.n-BT.lastCap)+' из 8</b></div><div style="opacity:.7;font-size:13px">После 8 ходов без потерь соперник согласится на ничью.</div></div>'+(BT.drawNo!=null&&BT.n-BT.drawNo<=3&&BT.drawNo>=BT.lastCap?'<div style="margin-top:6px;padding:6px 8px;border-radius:8px;background:#c8322f33;border:1px solid #c8322f">✋ Соперник отказался от ничьей: бой ещё идёт активно. Соперник согласится, если 8 ходов подряд пройдут без потерь (сейчас: '+(BT.n-BT.lastCap)+').</div>':'');
     }
   }else if(G.pend&&G.pend.type==='buy'){
     const P=G.pend,os=[...new Set(P.atk.map(a=>a.owner))];
@@ -1284,8 +1283,12 @@ drawSide=function(){
   }
   h+='<h3>Мои армии</h3>';
   for(const a of G.ar.filter(x=>x.owner===ME)){
-    const cap=a.kind==='captain';
-    h+=`<div class="arm ${G.sel===a.id?'on':''}" onclick="G.sel=${a.id};draw()">${ch2(col,a.kind,'','',true)}${a.units.map((u,i)=>ch2(col,u,'',G.sel===a.id&&unitMode(a)?`uiUnit(${a.id},${i})`:'')).join('')}${a.dagger?ch2(col,'dagger'):''}<span style="opacity:.7"> ${a.aboard?'на корабле':a.def?'защита':a.atkd?'⚔ напала, ход сделан':a.noMove===G.tn?'⏳ выкуплен: ходов нет, пойдёт со следующего хода':a.moved?'✔ ход сделан':''}${cap&&G.ar.some(z=>z.aboard===a.id)?' ⛵+'+G.ar.filter(z=>z.aboard===a.id).length:''}</span></div>`;
+    const cap=a.kind==='captain',myT=G.cur===ME&&G.phase==='move'&&!AUTO;
+    const done=a.moved||a.atkd||a.def||a.noMove===G.tn;
+    const upk=!a.aboard&&!a.def&&!a.atkd&&!a.moved&&a.noMove!==G.tn&&!inCastle(a)&&!ownPort(a);
+    const st=a.aboard?['sea','⛵ на корабле']:a.def?['def','🛡 ждёт боя']:a.atkd?['atk','⚔ напала, ход сделан']:a.noMove===G.tn?['wait','⏳ пойдёт со следующего хода']:a.moved?['done','✔ ход сделан']:inCastle(a)?['home','🏰 в замке']:cap&&ownPort(a)?['home','⚓ в своём порту']:['go','в поле'];
+    const cargo=cap?G.ar.filter(z=>z.aboard===a.id).length:0;
+    h+=`<div class="arm acard ${G.sel===a.id?'on':''} ${done&&myT?'dim':''}" onclick="G.sel=${a.id};draw()"><div class="ah">${ch2(col,a.kind,'','',true)}<div class="an"><b>${NM[a.kind]}</b> <span class="pw" title="Сила в бою: полководец и юниты">⚔ ${power(a)}</span>${a.dagger?' <span class="pw" title="Кинжал">🗡</span>':''}${cargo?' <span class="pw">⛵+'+cargo+'</span>':''}<div class="bd"><span class="bg ${st[0]}">${st[1]}</span>${myT&&!done&&!a.aboard?' <span class="bg can">можно ходить</span>':''}${upk?' <span class="bg upk" title="Армия вне замка, которая не ходила, платит 1 монету в конце хода">−1 🪙, если не пойдёт</span>':''}</div></div></div>${a.units.length?'<div class="au">'+a.units.map((u,i)=>ch2(col,u,'',G.sel===a.id&&unitMode(a)?`uiUnit(${a.id},${i})`:'')).join('')+'</div>':''}</div>`;
   }
   {const s0=sel_(),m0=s0&&unitMode(s0);if(m0&&s0.units.length)h+='<div style="font-size:11px;opacity:.85;margin:2px 0 6px">Нажмите юнита в армии выбранного полководца: '+(m0==='stock'?'он вернётся в запас.':m0==='gar'?'он останется гарнизоном бастиона.':m0==='orph'?'он останется на этой клетке, а взамен можно забрать другого (ниже).':'он останется на поместье и не даст занять клетку.')+'</div>'}
   {const ss=sel_(),can=ss&&ss.owner===ME&&atStock(ss)&&G.phase!=='battle'&&ss.units.length+(ss.dagger?1:0)<5;
@@ -2875,7 +2878,7 @@ menuEl.innerHTML=`<div class="scene"><div class="stars"></div>${ridge}${emb}
  </div>
 </div>
 <div class="port">${fig('green','king',-4)}${fig('blue','queen',3)}${fig('red','general',-3)}${fig('milk','captain',4)}</div>
-<div class="note" id="mnote"></div><div style="position:relative;z-index:2;opacity:.45;font-size:12px;margin:6px 0 10px;text-align:center">версия 84</div></div>`;
+<div class="note" id="mnote"></div><div style="position:relative;z-index:2;opacity:.45;font-size:12px;margin:6px 0 10px;text-align:center">версия 85</div></div>`;
 if(first){const _mg=window.menuGo;window.menuGo=function(m){if(m==='single'||m==='learn'){try{localStorage.setItem('bk_seen','1')}catch(e){}}return _mg(m)}}
 
 /* заставка-баталия */
@@ -3194,11 +3197,383 @@ drawMap=function(){
   window.__lots={open};
 })();
 
+/* ===== v85: удобный интерфейс — панель хода, меню у армии, угрозы, сводка ходов, подсказки боя ===== */
+(function(){
+const css=document.createElement('style');css.textContent=`
+#hud{grid-column:1/-1;display:none;align-items:center;gap:7px;flex-wrap:wrap;padding:2px 2px 0;min-height:48px}
+#app.hudon #turn{display:none!important}
+#app.hudon #side button[onclick="endTurn(ME)"]{display:none}
+#hud .ttl{font-family:var(--fd);font-size:28px;line-height:1.05;-webkit-text-stroke:1.2px rgba(0,0,0,.55);paint-order:stroke fill;text-shadow:0 1px 2px #0006;margin-right:4px;white-space:nowrap}
+#hud .hc{display:inline-flex;align-items:center;gap:5px;padding:5px 11px;border-radius:999px;background:#0004;border:1px solid var(--ln);font-size:15px;white-space:nowrap;line-height:1.2;user-select:none}
+:root[data-theme=light] #hud .hc{background:#fff9}
+#hud .hc b{color:var(--ac);font-size:17px}
+#hud .hc small{font-size:13px;opacity:.9}
+#hud .pos{color:#7dffa0}#hud .neg{color:#ff9c90}
+:root[data-theme=light] #hud .pos{color:#1f7a3a}:root[data-theme=light] #hud .neg{color:#a3221d}
+#hud .hc.ck{cursor:pointer}#hud .hc.ck:hover{filter:brightness(1.2)}
+#hud .hc.warn{background:#c8322f55;border-color:#ff6b5a;color:#fff;animation:hudw 1.4s ease-in-out infinite}
+#hud .hc.safe{border-color:#3ca55c}
+#hud .hc.on{background:#c8322f66;border-color:#ff6b5a}
+@keyframes hudw{50%{box-shadow:0 0 0 4px #ff5a4a44}}
+#hud .end{margin-left:auto;font-size:18px;font-weight:700;padding:9px 20px;background:linear-gradient(180deg,#f6cd82,#d99a3c);color:#2a1a0a;border-color:#f6cd82}
+#hud .end:hover:not(:disabled){background:linear-gradient(180deg,#ffe0a3,#e7a948)}
+#hud .end kbd{font:600 11px system-ui,sans-serif;opacity:.7;border:1px solid #2a1a0a66;border-radius:4px;padding:1px 4px;margin-left:6px;vertical-align:2px}
+#hud .coin{width:18px;height:18px}
+@media (min-width:821px){#hud{margin-right:240px}#app.hudon #hud{margin-right:var(--toolsw,240px)}}
+@media (min-width:821px) and (max-width:1399px){#app.hudon #tools .tl{display:none}#app.hudon #tools button{min-width:48px;padding:6px 12px}#hud .end kbd{display:none}}
+@media (max-width:820px){#hud{position:sticky;top:0;z-index:60;background:linear-gradient(180deg,#1d140bf2,#1d140bd9);margin:0 -10px;padding:6px 10px;border-bottom:1px solid var(--ln)}#hud .ttl{font-size:22px}#hud .end{font-size:16px;padding:8px 14px}#hud .end kbd{display:none}}
+@media (max-width:820px){:root[data-theme=light] #hud{background:#f6ecd4f0}}
+#apop{position:fixed;z-index:800;display:none;width:270px;background:linear-gradient(180deg,#46321f,#2c2016);border:2px solid var(--brass);border-radius:12px;padding:8px;box-shadow:0 10px 30px #000b;color:var(--tx)}
+:root[data-theme=light] #apop{background:linear-gradient(180deg,#fffaf0,#f3e5c4)}
+#apop .ph{display:flex;align-items:center;gap:8px;font-weight:700;margin:0 2px 4px;font-size:15px}
+#apop .ph img{width:30px;height:30px;border-radius:6px;border:2px solid var(--c);flex:none}
+#apop .ph .x{margin-left:auto;padding:0 9px;font-size:15px;line-height:1.5;box-shadow:none}
+#apop button.ab{display:block;width:100%;text-align:left;margin:5px 0 0;padding:7px 11px;border-radius:10px;font-size:15px;line-height:1.25}
+#apop button.ab small{display:block;font-size:12.5px;opacity:.88;margin-top:2px}
+#apop button.ab.atk{border-color:#ff7a6a}
+.od{font-weight:700}.od.g{color:#7dffa0}.od.y{color:#ffd36a}.od.r{color:#ff9c90}
+:root[data-theme=light] .od.g{color:#1f7a3a}:root[data-theme=light] .od.y{color:#8a5a00}:root[data-theme=light] .od.r{color:#a3221d}
+@media (max-width:820px){#apop{left:8px!important;right:8px;width:auto;top:auto!important;bottom:calc(8px + env(safe-area-inset-bottom,0px))}}
+.tz{position:absolute;inset:0;z-index:5;pointer-events:none;background:rgba(225,45,30,var(--a));box-shadow:inset 0 0 0 1px #ff5a4a55}
+.tzr{position:absolute;inset:0;z-index:7;pointer-events:none;box-shadow:inset 0 0 0 3px #ff9a3c}
+.tzr.hi{box-shadow:inset 0 0 0 3px #ff3b2f;animation:tgtp 1s ease-in-out infinite}
+.tzb{position:absolute;left:1px;top:1px;z-index:9;pointer-events:none;font-size:10px;font-weight:700;line-height:1.2;padding:0 3px;border-radius:5px;background:#9a5a14;color:#fff;box-shadow:0 1px 2px #000a}
+.tzb.hi{background:#c8322f}
+.tgt{position:absolute;inset:0;z-index:8;pointer-events:none;border:3px solid #ff3b2f;border-radius:6px;box-shadow:0 0 12px #ff3b2faa;animation:tgtp 1s ease-in-out infinite}
+.tgt::after{content:"⚔";position:absolute;left:-2px;top:-3px;font-size:12px;line-height:1;background:#ff3b2f;color:#fff;border-radius:0 0 6px 0;padding:1px 3px}
+@keyframes tgtp{50%{box-shadow:0 0 2px #ff3b2f55;border-color:#ffb3a8}}
+.flagw{position:absolute;inset:0;z-index:8;pointer-events:none;border:3px solid #ff3b2f;border-radius:4px;animation:tgtp .9s ease-in-out infinite}
+.bthr{position:absolute;inset:3%;z-index:6;pointer-events:none;border:3px solid #ff3b2f;border-radius:8px;box-shadow:0 0 10px #ff3b2f}
+.bthr.big{animation:tgtp .8s ease-in-out infinite}
+.bcap{position:absolute;inset:0;z-index:8;pointer-events:none;background:radial-gradient(circle,transparent 46%,#ff3b2f88 48%,#ff3b2f88 56%,transparent 58%);box-shadow:inset 0 0 0 3px #ff3b2f}
+.bmv{position:absolute;inset:1%;z-index:3;pointer-events:none;border-radius:9px;border:2px solid #ffe08a;box-shadow:0 0 10px #ffd36a,inset 0 0 6px #ffd36a88}
+#marr{position:fixed;left:0;top:0;width:100vw;height:100vh;pointer-events:none;z-index:700;display:none}
+.feed{border:1px solid var(--brass);border-radius:10px;padding:8px 10px;margin:0 0 10px;background:#0003}
+:root[data-theme=light] .feed{background:#fff8}
+.feed .fh{display:flex;align-items:center;gap:6px;margin-bottom:4px;font-size:16px}
+.feed .fh button{margin-left:auto;padding:0 9px;font-size:14px;line-height:1.5;box-shadow:none}
+.feed .fls{max-height:170px;overflow:auto}
+.feed .fl{font-size:14px;line-height:1.4;padding:3px 0;border-bottom:1px dashed #ffffff18}
+.feed .fl.hot{color:#ffb3a8;font-weight:600}
+:root[data-theme=light] .feed .fl.hot{color:#a3221d}
+.feed .fb{margin-top:6px;font-size:14px;padding:5px 12px}
+.cfloat{position:fixed;z-index:950;font-weight:800;font-size:22px;pointer-events:none;animation:cfl 1.7s ease-out forwards;text-shadow:0 1px 3px #000,0 0 8px #000}
+@keyframes cfl{0%{opacity:0;transform:translateY(6px) scale(.8)}15%{opacity:1;transform:translateY(0) scale(1.1)}100%{opacity:0;transform:translateY(-46px) scale(1)}}
+.acard{display:block;padding:6px 8px}
+.acard .ah{display:flex;align-items:center;gap:8px}
+.acard .an{flex:1;min-width:0;line-height:1.3}
+.acard .pw{font-size:13px;padding:0 7px;border-radius:999px;background:#0004;border:1px solid var(--ln);white-space:nowrap}
+.acard .bd{margin-top:3px;display:flex;flex-wrap:wrap;gap:4px}
+.bg{font-size:12.5px;padding:1px 8px;border-radius:999px;border:1px solid var(--ln);white-space:nowrap}
+.bg.can{border-color:#3ca55c;color:#7dffa0}.bg.upk{border-color:#c8322f;color:#ff9c90}
+.bg.def,.bg.atk{border-color:#e8b46a}
+:root[data-theme=light] .bg.can{color:#1f7a3a}:root[data-theme=light] .bg.upk{color:#a3221d}
+.acard .au{margin-top:4px}
+.acard.dim{opacity:.6}.acard.dim.on{opacity:1}
+details.bal{margin:8px 0;padding:6px 8px;border:1px solid var(--ln);border-radius:8px;font-size:13px;line-height:1.5}
+details.bal summary{cursor:pointer;font-size:14px}
+details.bal>div{margin-top:4px}
+.dprog{display:flex;align-items:center;gap:6px;margin-top:6px;font-size:14px;flex-wrap:wrap}
+.dbar{display:inline-block;width:110px;height:9px;border-radius:99px;background:#0005;overflow:hidden;border:1px solid var(--ln)}
+.dbar i{display:block;height:100%;background:linear-gradient(90deg,#e8b46a,#7dffa0)}
+.pcard{display:flex;gap:10px;align-items:flex-start;margin:8px 0;padding:8px;border:1px solid var(--ln);border-radius:10px;background:#0003;font-size:14px;line-height:1.4}
+.pcard img{width:46px;height:46px;border-radius:8px;flex:none}
+.bwarn{margin:6px 0;padding:6px 9px;border-radius:9px;font-size:14px;font-weight:600}
+.bwarn.r{background:#c8322f44;border:1px solid #ff6b5a}.bwarn.g{background:#3ca55c33;border:1px solid #3ca55c}
+@media (prefers-reduced-motion:reduce){#hud .hc.warn,.tgt,.flagw,.bthr.big{animation:none}}
+`;document.head.appendChild(css);
+
+const appEl=document.getElementById('app'),mapEl=document.getElementById('map'),sideEl=document.getElementById('side');
+const turnEl=document.getElementById('turn');
+const hud=document.createElement('div');hud.id='hud';appEl.insertBefore(hud,turnEl||mapEl);
+try{for(const [id,ic,tx] of [['mbtn','☰','Меню'],['gbtn','⚙','Настройки']]){const b=document.getElementById(id);if(b&&b.textContent.trim()===ic+' '+tx){b.innerHTML=ic+' <span class="tl">'+tx+'</span>';b.title=tx}}}catch(e){}
+const pop=document.createElement('div');pop.id='apop';document.body.appendChild(pop);
+const SVGNS='http://www.w3.org/2000/svg';
+const arr=document.createElementNS(SVGNS,'svg');arr.id='marr';document.body.appendChild(arr);
+const COIN='<svg class="coin" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10.5" fill="#e8b955" stroke="#8a5a12" stroke-width="1.6"/><circle cx="12" cy="12" r="7" fill="none" stroke="#b9822a" stroke-width="1.4"/><path d="M12 7.5v9M9.5 9.5h4a1.6 1.6 0 0 1 0 3h-3a1.6 1.6 0 0 0 0 3h4" fill="none" stroke="#8a5a12" stroke-width="1.5" stroke-linecap="round"/></svg>';
+let THR=false;try{THR=localStorage.getItem('bk_thr')==='1'}catch(e){}
+const FEED={g:null,pend:[],show:[],mv:[],showMv:[],arrows:false,closed:false,wasMine:false,coins:null};
+const PREV={g:null,m:new Map()};
+const vis=()=>appEl.style.visibility==='visible';
+const playing=()=>typeof phase!=='undefined'&&phase==='play'&&!!G;
+const myMove=()=>playing()&&!G.over&&!BT&&!G.pend&&G.cur===ME&&G.phase==='move'&&!AUTO;
+const sg=n=>(n>0?'+':n<0?'−':'')+Math.abs(n);
+const pl=(n,a,b,c)=>{const m=n%10,h=n%100;return m===1&&h!==11?a:m>=2&&m<=4&&(h<12||h>14)?b:c};
+const who=o=>o===ME?'ваш':'игрока '+(o+1);
+const canAct=a=>a.owner===ME&&!a.moved&&!a.atkd&&!a.def&&a.noMove!==G.tn&&(a.aboard?landings(a).length>0:true);
+function econ(){
+  let inB=0,inP=0,outB=0,outP=0,mt=0;
+  for(const b of G.bas){const ow=G.co[b.seat];if(b.occ===ME&&ow!==null&&ow!==ME&&alive(ow))inB++;if(ow===ME&&b.occ!==null&&b.occ!==ME)outB++}
+  for(let i=0;i<4;i++){if(G.pocc[i]===ME&&G.co[i]!==null&&G.co[i]!==ME&&alive(G.co[i]))inP++;if(G.co[i]===ME&&G.pocc[i]!==null&&G.pocc[i]!==ME)outP++}
+  for(const a of G.ar)if(a.owner===ME&&!a.aboard&&!inCastle(a)&&!ownPort(a)&&!a.def&&!a.atkd&&a.noMove!==G.tn&&!(G.cur===ME&&a.moved))mt++;
+  return inB+inP-(outB+outP+mt);
+}
+function flagInfo(){
+  if(!alive(ME))return null;
+  const fl=FLAGP[ME];let eta=99,by=null;
+  for(const e of G.ar){if(e.owner===ME||!alive(e.owner)||e.kind==='captain')continue;const t=enemyEta(e,fl);if(t<eta){eta=t;by=e}}
+  return {eta,by,guard:G.ar.some(a=>a.owner===ME&&!a.aboard&&same(a.pos,fl))};
+}
+/* ---------- верхняя панель ---------- */
+function renderHud(){
+  const on=playing()&&vis();
+  appEl.classList.toggle('hudon',on);
+  if(!on){hud.style.display='none';return}
+  hud.style.display='flex';
+  try{const tl=document.getElementById('tools');if(tl&&innerWidth>820)appEl.style.setProperty('--toolsw',(tl.offsetWidth+22)+'px')}catch(e){}
+  let h=`<span class="ttl" style="color:${turnEl?turnEl.style.color:''}">${turnEl?turnEl.textContent:''}</span>`;
+  if(!G.over&&alive(ME)){
+    const net=econ();
+    h+=`<span class="hc ck" id="hcoin" onclick="__balToggle()" title="Монеты и сколько прибавится или убудет за ход. Нажмите, чтобы открыть подробный баланс">${COIN}<b>${G.pl[ME].coins}</b><small class="${net<0?'neg':net>0?'pos':''}">${sg(net)} <span>за ход</span></small></span>`;
+    if(myMove()){const n=G.ar.filter(canAct).length;h+=`<span class="hc ck" onclick="__nextArmy(1)" title="Армии, которые ещё могут ходить. Нажмите или Tab, чтобы выбрать следующую"><span>Не ходили:</span> <b>${n}</b></span>`}
+    const f=flagInfo();
+    if(f&&f.eta<=3&&!BT){
+      if(f.guard)h+=`<span class="hc ck safe" onclick="__thrToggle(true)" title="Ваша армия стоит на флаге: чтобы его взять, врагу придётся напасть">🚩 <span>Флаг под охраной</span></span>`;
+      else h+=`<span class="hc ck ${f.eta<=2?'warn':''}" onclick="__thrToggle(true)" title="Ближайшая вражеская армия (${NM[f.by.kind]}) может встать на ваш флаг. Нажмите, чтобы показать угрозы">⚠ <span>Враг в</span> <b>${f.eta}</b> <span>${pl(f.eta,'ходе','ходах','ходах')} от флага</span></span>`;
+    }
+    if(!BT)h+=`<span class="hc ck ${THR?'on':''}" onclick="__thrToggle()" title="Показать угрозы (клавиша T): красным закрашена ваша земля, куда враг дойдёт за один ход; рамкой обведены ваши армии, на которые смогут напасть; цифра — общая сила врагов, способных напасть на эту клетку">👁 <span>Угрозы</span></span>`;
+    if(myMove())h+=`<button class="end" onclick="endTurn(ME)">Конец хода<kbd>пробел</kbd></button>`;
+  }
+  hud.innerHTML=h;
+}
+window.__balToggle=()=>{window.__balOpen=!window.__balOpen;draw();const d=sideEl.querySelector('details.bal');if(d&&window.__balOpen)d.scrollIntoView({block:'nearest',behavior:'smooth'})};
+window.__thrToggle=f=>{THR=f===true?true:!THR;try{localStorage.setItem('bk_thr',THR?'1':'0')}catch(e){}draw()};
+window.__nextArmy=d=>{
+  if(!myMove())return;
+  let L=G.ar.filter(canAct);if(!L.length)L=G.ar.filter(a=>a.owner===ME);if(!L.length)return;
+  const i=L.findIndex(a=>a.id===G.sel);
+  const n=i<0?(d>0?0:L.length-1):(i+d+L.length)%L.length;
+  G.sel=L[n].id;G.note='';draw();
+};
+/* ---------- меню действий у армии ---------- */
+const UO=['HC','LC','HI','LI'];
+function weakest(a){let bi=0;a.units.forEach((u,i)=>{if(UO.indexOf(u)>UO.indexOf(a.units[bi]))bi=i});return bi}
+window.__fillArmy=id=>{const a=armyById(id);if(!a)return;let n=0;for(const k of UO)while(G.pl[ME].res.includes(k)&&takeUnit(a,k))n++;if(n)G.note='В армию взято юнитов: '+n+'.';draw()};
+window.__popClose=()=>{G.sel=null;G.note='';draw()};
+function renderPop(){
+  const s=vis()&&myMove()?sel_():null;
+  if(!s){pop.style.display='none';return}
+  const A=[];
+  for(const t of G.ar.filter(z=>canAttack(s,z))){
+    const d=G.decl.find(x=>x.def===t.id);
+    const my=power(s)+(d?d.atk.map(armyById).filter(x=>x&&x.owner===ME).reduce((q,x)=>q+power(x),0):0),th=power(t);
+    const help=G.ar.some(x=>x!==t&&x.owner===t.owner&&!x.aboard&&adjS(x.pos,t.pos));
+    const cl=my>th?'g':my===th?'y':'r';
+    A.push(`<button class="ab atk" onclick="uiAtt(${s.id},${t.id})">⚔ ${d?'Присоединиться к нападению':'Напасть'}: ${NM[t.kind]} ${dot(t.owner)}<small><span>Сила:</span> <span class="od ${cl}">${my} против ${th}</span>${help?' · <span>рядом его армия, может помочь</span>':''}</small></button>`);
+    if(canDagger(s,t))A.push(`<button class="ab atk" onclick="uiDag(${s.id},${t.id})">🗡 Кинжал: ${NM[t.kind]} ${dot(t.owner)}<small>Убивает без боя. Кинжал одноразовый.</small></button>`);
+  }
+  if(s.kind!=='captain'&&!s.aboard&&!s.def)for(const c of G.ar.filter(z=>z.owner===ME&&z.kind==='captain'&&adjS(z.pos,s.pos)))A.push(`<button class="ab" onclick="uiBoard(${s.id},${c.id})">⛵ Сесть на корабль<small>Высадиться можно со следующего хода</small></button>`);
+  const m=unitMode(s),bs=bastAt(s.pos[0],s.pos[1]);
+  if(m==='gar'&&s.units.length){const i=weakest(s);A.push(`<button class="ab" onclick="uiUnit(${s.id},${i})">🛡 Оставить гарнизон: ${NM[s.units[i]]}<small>Юнит останется в бастионе и удержит его</small></button>`)}
+  if(m==='est'&&s.units.length){const i=weakest(s);A.push(`<button class="ab" onclick="uiUnit(${s.id},${i})">🏠 Оставить юнита на поместье: ${NM[s.units[i]]}<small>Враг не сможет встать сюда и сжечь его</small></button>`)}
+  if(bs&&bs.gar===ME&&!s.aboard&&s.units.length+(s.dagger?1:0)<5)A.push(`<button class="ab" onclick="uiGT(${s.id})">🛡 Забрать гарнизон в армию</button>`);
+  if(atStock(s)&&G.phase!=='battle'&&G.pl[ME].res.length&&s.units.length+(s.dagger?1:0)<5)A.push(`<button class="ab" onclick="__fillArmy(${s.id})">📦 Пополнить из запаса<small>Возьмёт самых сильных, пока есть места (в запасе: ${G.pl[ME].res.length})</small></button>`);
+  for(const b of G.ar.filter(z=>z.owner===ME&&z!==s&&!z.aboard&&!s.aboard&&adjS(z.pos,s.pos)&&s.units.length&&z.units.length+(z.dagger?1:0)<5))A.push(`<button class="ab" onclick="uiX(${s.id},${b.id})">↔ Передать юнита: ${NM[b.kind]}</button>`);
+  if(!A.length){pop.style.display='none';return}
+  pop.style.setProperty('--c',colOf(ME));
+  pop.innerHTML=`<div class="ph"><img alt="" src="${spr(colorOf[ME],s.kind)}"><span>${NM[s.kind]}</span> <span style="font-weight:600;opacity:.8">⚔ ${power(s)}</span><button class="x" onclick="__popClose()" title="Снять выбор (Esc)">✕</button></div>`+A.join('');
+  pop.style.display='block';placePop(s);
+}
+function placePop(s){
+  if(pop.style.display==='none'||innerWidth<=820)return;
+  const c=mapEl.children[(s.pos[1]-1)*15+(s.pos[0]-1)];if(!c)return;
+  const r=c.getBoundingClientRect(),w=pop.offsetWidth,hh=pop.offsetHeight,cw=r.width;
+  let left=s.pos[0]<=8?r.right+3*cw+6:r.left-3*cw-6-w;
+  left=Math.max(8,Math.min(innerWidth-w-8,left));
+  let top=r.top+r.height/2-hh/2;top=Math.max(8,Math.min(innerHeight-hh-8,top));
+  pop.style.left=left+'px';pop.style.top=top+'px';
+}
+/* ---------- слои на карте ---------- */
+const cellAt=(x,y)=>mapEl.children[(y-1)*15+(x-1)];
+function addLayer(c,cls,st){if(!c)return;const d=document.createElement('div');d.className=cls;if(st)d.style.cssText=st;c.appendChild(d);return d}
+function mapLayers(){
+  if(!playing()||BT)return;
+  const kids=mapEl.children;if(kids.length<225)return;
+  const s=myMove()?sel_():null;
+  if(THR&&!G.over){
+    const T=threatMap(ME),R=new Map();
+    for(const e of G.ar){if(e.owner===ME||!alive(e.owner)||e.aboard)continue;for(const c of enemyReach(e)){const k=key(c[0],c[1]);R.set(k,(R.get(k)||0)+1)}}
+    for(const [k,n] of R){const [x,y]=k.split(',').map(Number),sx=seatOf(x,y);if(!inMap(x,y)||lake(x,y)||sx<0||G.co[sx]!==ME)continue;addLayer(cellAt(x,y),'tz','--a:'+Math.min(.45,.16+n*.08).toFixed(2))}
+    for(const a of G.ar)if(a.owner===ME&&!a.aboard){const v=T.get(key(a.pos[0],a.pos[1]));if(v){addLayer(cellAt(a.pos[0],a.pos[1]),'tzr'+(v>power(a)?' hi':''));const b=addLayer(cellAt(a.pos[0],a.pos[1]),'tzb');b.textContent='⚔'+v;b.title='Сила врагов, которые смогут напасть'}}
+    if(s)for(const c of reach(s).concat(landings(s))){const v=T.get(key(c[0],c[1]));if(v){const b=addLayer(cellAt(c[0],c[1]),'tzb'+(v>power(s)?' hi':''));b.textContent='⚔'+v}}
+  }
+  if(s)for(const z of G.ar)if(z.owner!==ME&&!z.aboard&&(canAttack(s,z)||canDagger(s,z)))addLayer(cellAt(z.pos[0],z.pos[1]),'tgt');
+  const f=!G.over&&flagInfo();
+  if(f&&f.eta<=2&&!f.guard)addLayer(cellAt(FLAGP[ME][0],FLAGP[ME][1]),'flagw');
+  // подсказки при наведении: поместья, флаги, замки
+  for(let y=1;y<=15;y++)for(let x=1;x<=15;x++){
+    const c=kids[(y-1)*15+x-1];if(c.onmouseenter)continue;
+    let t='';const e=G.est[key(x,y)],sx=seatOf(x,y);
+    if(e){const o=G.co[e.seat];
+      if(e.burned)t='🏚 <b>Сгоревшее поместье</b><br>Теперь это препятствие.';
+      else if(o===ME)t=`🏠 <b>Ваше поместье</b> · <span>ценность</span> ${e.val}<br>Враг, вставший сюда, сожжёт его и заберёт ${e.val} мон. Оставьте здесь юнита, чтобы прикрыть.`;
+      else if(o!==null)t=`🏠 <b>Поместье ${who(o)}</b><br>Встаньте сюда, чтобы сжечь его и получить его ценность в монетах (от 1 до 4).`;
+    }else if(isFlag(x,y)){const i=FLAGP.findIndex(q=>q[0]===x&&q[1]===y),o=G.orig[i];
+      t=o===ME?'🚩 <b>Ваш флаг</b><br>Если враг встанет сюда, вы выбываете. Держите армию рядом.':alive(o)?`🚩 <b>Флаг ${who(o)}</b><br>Встаньте сюда, и этот игрок выбывает.`:'🚩 Флаг выбывшего игрока.';
+    }else if(!lake(x,y)&&sx>=0&&castle(x,y)){
+      t=G.co[sx]===ME?'🏰 <b>Ваш замок</b><br>Здесь полководцы переставляются бесплатно и берут юнитов из запаса.':'🏰 <b>Чужой замок</b><br>По нему армия идёт только на 1 клетку за ход.';
+    }
+    if(t){c.onmouseenter=ev=>showTip(t,ev);c.onmousemove=moveTip;c.onmouseleave=hideTip}
+  }
+}
+/* ---------- анимация передвижения ---------- */
+function animate(){
+  if(!playing())return;
+  if(PREV.g!==G){PREV.g=G;PREV.m.clear()}
+  if(!BT){
+    const reduce=window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const c0=mapEl.children[0],cw=c0?c0.getBoundingClientRect().width:0;
+    if(!reduce&&cw)for(const im of mapEl.querySelectorAll('img[data-aid]')){
+      const a=armyById(+im.dataset.aid),p=a&&PREV.m.get(a.id);
+      if(!p||same(p,a.pos))continue;
+      if(Math.max(Math.abs(p[0]-a.pos[0]),Math.abs(p[1]-a.pos[1]))>8)continue;
+      const dx=(p[0]-a.pos[0])*cw,dy=(p[1]-a.pos[1])*cw;
+      im.style.transition='none';im.style.transform=`translate(${dx}px,${dy}px)`;im.style.zIndex=30;
+      const go=()=>{if(im.style.transform){im.style.transition='transform .4s cubic-bezier(.3,.75,.35,1)';im.style.transform=''}};
+      requestAnimationFrame(()=>requestAnimationFrame(go));setTimeout(()=>{if(im.style.transform){im.style.transition='none';im.style.transform=''}},700);
+    }
+  }
+  for(const a of G.ar)PREV.m.set(a.id,a.pos.slice());
+}
+/* ---------- деньги: всплывающие +/- ---------- */
+function coinFloat(){
+  if(!playing()||!alive(ME)){FEED.coins=null;return}
+  const c=G.pl[ME].coins;
+  if(FEED.coins!=null&&c!==FEED.coins&&vis()){
+    const el=document.getElementById('hcoin'),d=c-FEED.coins;
+    if(el){const r=el.getBoundingClientRect(),f=document.createElement('div');f.className='cfloat';f.textContent=(d>0?'+':'−')+Math.abs(d)+' 🪙';f.style.color=d>0?'#7dffa0':'#ff8a7a';f.style.left=(r.left+r.width/2-24)+'px';f.style.top=(r.bottom+2)+'px';document.body.appendChild(f);setTimeout(()=>f.remove(),1800)}
+  }
+  FEED.coins=c;
+}
+/* ---------- сводка ходов соперников ---------- */
+function hookLogs(){
+  try{
+    if(typeof logs==='undefined'||!logs||logs.__fh)return;
+    const u=logs.unshift;
+    logs.unshift=function(...a){try{if(G&&!HOT.on&&!myMove())FEED.pend.push(...a)}catch(e){}return u.apply(this,a)};
+    Object.defineProperty(logs,'__fh',{value:1});
+  }catch(e){}
+}
+const _mv=moveArmy;
+moveArmy=function(a,to,free){
+  const from=a.pos.slice(),r=_mv.apply(this,arguments);
+  try{if(G&&!free&&a.owner!==ME&&!HOT.on&&!same(from,to))FEED.mv.push({o:a.owner,k:a.kind,f:from,t:to.slice()})}catch(e){}
+  return r;
+};
+function feedTick(){
+  if(!playing()){FEED.wasMine=false;return}
+  if(FEED.g!==G){FEED.g=G;FEED.pend=[];FEED.show=[];FEED.mv=[];FEED.showMv=[];FEED.wasMine=false;FEED.coins=null}
+  const mine=myMove();
+  if(mine&&!FEED.wasMine){
+    FEED.show=FEED.pend.slice(-14);FEED.pend=[];
+    FEED.showMv=FEED.mv;FEED.mv=[];FEED.arrows=FEED.showMv.length>0;FEED.closed=false;
+  }
+  FEED.wasMine=mine;
+}
+const FEM={queen:1};
+function moveLines(){
+  const L=[],by={};
+  for(const m of FEED.showMv){by[m.o]=(by[m.o]||0)+1;
+    if(m.k==='captain')continue;
+    const k=terr(m.t),was=terr(m.f),nm=NM[m.k]+' '+'игрока '+(m.o+1);
+    if(k>=0&&G.co[k]===ME&&!(was>=0&&G.co[was]===ME))L.push({h:1,t:'⚠ '+nm+' '+(FEM[m.k]?'вошла':'вошёл')+' на вашу землю.'});
+    else if(cheb(m.t,FLAGP[ME])<=4&&cheb(m.t,FLAGP[ME])<cheb(m.f,FLAGP[ME]))L.push({h:1,t:'⚠ '+nm+' '+(FEM[m.k]?'подошла':'подошёл')+' к вашему флагу.'});
+  }
+  const sum=Object.keys(by).map(o=>dot(+o)+' <span>игрок</span> '+(+o+1)+' — '+by[o]+' '+pl(by[o],'ход','хода','ходов')).join(' · ');
+  return {L,sum};
+}
+function feedHtml(){
+  if(!myMove()||FEED.closed||HOT.on||(!FEED.show.length&&!FEED.showMv.length))return '';
+  const hot=t=>/ваш|Ваш|вашу|теряете|Флаг захвачен|Король/.test(t);
+  const mv=moveLines();
+  const rows=mv.L.map(x=>`<div class="fl hot">${x.t}</div>`).concat(FEED.show.map(t=>`<div class="fl ${hot(t)?'hot':''}">${t}</div>`));
+  return `<div class="feed"><div class="fh"><b>Пока вы ждали</b><button onclick="__feedClose()" title="Скрыть">✕</button></div>${mv.sum?`<div class="fl"><span>Ходы соперников:</span> ${mv.sum}</div>`:''}<div class="fls">${rows.join('')||'<div class="fl" style="opacity:.7">Ничего важного не случилось.</div>'}</div>${FEED.showMv.length?`<button class="fb" onclick="__feedArrows()">${FEED.arrows?'Скрыть стрелки ходов':'👁 Показать ходы на карте'}</button>`:''}</div>`;
+}
+window.__feedClose=()=>{FEED.closed=true;FEED.arrows=false;draw()};
+window.__feedArrows=()=>{FEED.arrows=!FEED.arrows;draw()};
+function drawArrows(){
+  const on=vis()&&myMove()&&FEED.arrows&&FEED.showMv.length&&!BT;
+  if(!on){arr.style.display='none';return}
+  const c0=mapEl.children[0];if(!c0||mapEl.children.length<225){arr.style.display='none';return}
+  const cen=p=>{const r=cellAt(p[0],p[1]).getBoundingClientRect();return[r.left+r.width/2,r.top+r.height/2]};
+  const cw=c0.getBoundingClientRect().width;
+  let defs='<defs>',body='';const seen=new Set();
+  for(const m of FEED.showMv){
+    const col=colOf(m.o);if(!seen.has(m.o)){seen.add(m.o);defs+=`<marker id="mah${m.o}" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="4" markerHeight="4" orient="auto"><path d="M0 0L10 5L0 10z" fill="${col}" stroke="#000" stroke-width=".8"/></marker>`}
+    const [x1,y1]=cen(m.f),[x2,y2]=cen(m.t),L=Math.hypot(x2-x1,y2-y1)||1,sh=cw*.32;
+    const ex=x2-(x2-x1)/L*sh,ey=y2-(y2-y1)/L*sh;
+    body+=`<line x1="${x1}" y1="${y1}" x2="${ex}" y2="${ey}" stroke="#000a" stroke-width="${Math.max(5,cw*.17)}" stroke-linecap="round"/><line x1="${x1}" y1="${y1}" x2="${ex}" y2="${ey}" stroke="${col}" stroke-width="${Math.max(3,cw*.11)}" stroke-linecap="round" marker-end="url(#mah${m.o})"/><circle cx="${x1}" cy="${y1}" r="${Math.max(3,cw*.1)}" fill="${col}" stroke="#000" stroke-width="1"/>`;
+  }
+  arr.innerHTML=defs+'</defs>'+body;arr.style.display='block';
+}
+/* ---------- подсказки в бою ---------- */
+const RULE={D:'по диагонали',O:'по прямой: вперёд, назад и вбок'};
+window.__btInfo=function(q){
+  if(!BT||BT.stage!=='fight')return '';
+  const meO=q&&isHum(q.owner)?q.owner:(HOT.on?null:ME);if(meO==null)return '';
+  let h='';
+  const mine=BT.P.filter(p=>p.alive&&p.owner===meO&&p.x!=null&&!isDis(BT.parts[p.pi]));
+  if(mine.some(p=>p.cmd&&batk(p.x,p.y,meO)))h+='<div class="bwarn r">⚠ Ваш полководец под ударом! Уведите его или закройте.</div>';
+  if(mine.some(p=>p.tent&&batk(p.x,p.y,meO)))h+='<div class="bwarn r">⚠ Враг может встать на ваш шатёр!</div>';
+  if(q&&isHum(q.owner)){
+    const win=q.pieces.some(p=>p.alive&&p.k!=='tent'&&p.x!=null&&pm(p).some(([x,y])=>{const o=bat(x,y);return o&&o.owner!==meO&&(o.cmd||o.tent)&&!isDis(BT.parts[o.pi])}));
+    if(win)h+='<div class="bwarn g">🎯 Можно взять полководца или шатёр врага: это победа!</div>';
+    const p=BT.sel;
+    if(p&&KD[p.k]){const[t,r]=KD[p.k];
+      h+=`<div class="pcard"><img alt="" src="${spr(p.col,p.k)}"><div><b>${NM[p.k]}</b>${p.cmd?' <span>· полководец</span>':''}<br><span>Ходит</span> ${RULE[t]} <span>${r===1?'на 1 клетку':'на 1–2 клетки'}</span>. Фигуры не перепрыгивает, бьёт, вставая на клетку врага.${t==='D'?`<br><span style="opacity:.85">По диагонали фигура всегда остаётся на клетках одного цвета (<span>${(p.x+p.y)%2?'тёмных':'светлых'}</span>): фигуры на клетках другого цвета ей не достать.</span>`:''}${p.cmd?'<br><b>Если полководец погибнет, армия проиграет бой.</b>':''}</div></div>`;
+    }else h+='<div style="opacity:.8;font-size:14px;margin:6px 0">Нажмите свою фигуру (с золотым свечением): здесь появится, как она ходит. Красная рамка: фигура под ударом, красное кольцо: её можно взять.</div>';
+  }
+  return h;
+};
+function battleLayers(){
+  if(!BT||BT.stage!=='fight'||mapEl.children.length!==64)return;
+  const cq=BT.parts[BT.cur],hum=cq&&isHum(cq.owner),meO=hum?cq.owner:(HOT.on?null:ME);
+  const cell=(x,y)=>mapEl.children[y*8+x];
+  if(meO!=null)for(const p of BT.P)if(p.alive&&p.owner===meO&&p.x!=null&&!isDis(BT.parts[p.pi])&&batk(p.x,p.y,meO))addLayer(cell(p.x,p.y),'bthr'+(p.cmd||p.tent?' big':''));
+  if(!hum)return;
+  if(BT.sel){for(const[x,y]of pm(BT.sel)){const o=bat(x,y);if(o&&o.owner!==cq.owner)addLayer(cell(x,y),'bcap')}}
+  else for(const p of cq.pieces)if(p.alive&&p.k!=='tent'&&p.x!=null&&(pm(p).length||canExit(p)))addLayer(cell(p.x,p.y),'bmv');
+}
+/* ---------- сборка ---------- */
+const _dm=drawMap;
+drawMap=function(){_dm();try{mapLayers();battleLayers();animate()}catch(e){console.warn(e)}};
+const _ds=drawSide;
+drawSide=function(){_ds();try{const f=feedHtml();if(f)sideEl.insertAdjacentHTML('afterbegin',f)}catch(e){console.warn(e)}};
+const _d=draw;
+draw=function(){
+  hookLogs();try{feedTick()}catch(e){}
+  _d();
+  try{renderHud();renderPop();drawArrows();coinFloat()}catch(e){console.warn(e)}
+};
+const relayout=()=>{try{const s=myMove()&&sel_();if(s)placePop(s);drawArrows()}catch(e){}};
+addEventListener('resize',relayout);addEventListener('scroll',relayout,{passive:true});
+const _sm=window.showMenu;window.showMenu=function(){_sm.apply(this,arguments);hud.style.display='none';pop.style.display='none';arr.style.display='none'};
+/* ---------- горячие клавиши ---------- */
+const OVL=['menu','endm','tmod','help','hpass','lots','netd','setm','intro'];
+const blocked=()=>!vis()||OVL.some(id=>{const e=document.getElementById(id);return e&&getComputedStyle(e).display!=='none'});
+document.addEventListener('keydown',e=>{
+  if(e.ctrlKey||e.metaKey||e.altKey)return;
+  const tg=e.target;if(tg&&(/^(INPUT|TEXTAREA|SELECT)$/.test(tg.tagName)||tg.isContentEditable))return;
+  if(!playing()||G.over||blocked())return;
+  const tut=typeof TUT!=='undefined'&&TUT;
+  if(e.code==='Space'){if(myMove()&&!tut){e.preventDefault();endTurn(ME)}return}
+  if(e.key==='Tab'){
+    if(myMove()){e.preventDefault();__nextArmy(e.shiftKey?-1:1)}
+    else if(BT&&BT.stage==='fight'){const q=BT.parts[BT.cur];if(q&&isHum(q.owner)){e.preventDefault();const L=q.pieces.filter(p=>p.alive&&p.k!=='tent'&&p.x!=null&&(pm(p).length||canExit(p)));if(L.length){const i=L.indexOf(BT.sel);BT.sel=L[i<0?0:(i+(e.shiftKey?-1:1)+L.length)%L.length];draw()}}}
+    return;
+  }
+  if(e.key==='Escape'){if(BT&&BT.sel){BT.sel=null;draw()}else if(G.sel!=null){G.sel=null;G.note='';draw()}return}
+  if(e.code==='KeyT'&&!BT){__thrToggle();return}
+});
+})();
+
+
 /* ===== ЯЗЫК: русский / English ===== */
 (function(){
 if(typeof MutationObserver==='undefined'||typeof document.createTreeWalker!=='function')return;
 const D={"Битва королевств":"Battle of Kingdoms","🎵 Музыка":"🎵 Music","Жребий":"Draw lots","Выберите карту — она откроет цвет вашего королевства":"Pick a card to reveal your kingdom's colour","В бой!":"To battle!","Ваш цвет:":"Your colour:","Бот":"Bot","Вы":"You","Во время партии сложность менять нельзя.":"Difficulty can't be changed during a game.","🎚 Громкость музыки":"🎚 Music volume","На борту:":"On board:","⛵ Корабль":"⛵ Ship","пусто":"empty","Напали на:":"Under attack:","нет юнитов":"no units","версия 84":"version 84","Продолжить игру":"Continue playing","☰ В меню":"☰ To menu","Стратегия для двух–четырёх игроков: четыре королевства, один флаг в замке. Играйте против ботов прямо в браузере.":"A strategy game for two to four players: four kingdoms, one flag in each castle. Play against bots right in your browser.","Лёгкая пехота":"Light infantry","Тяжёлая пехота":"Heavy infantry","Лёгкая конница":"Light cavalry","Тяжёлая конница":"Heavy cavalry","Король":"King","Королева":"Queen","Генерал":"General","Капитан":"Captain","Кинжал":"Dagger","Лёгкий":"Easy","Нормальный":"Normal","Сложный":"Hard","Как раньше: ходят почти наугад, в бою не прикрывают армии.":"As before: they move almost at random and do not cover their armies in battle.","Взвешивают риск, прикрывают армии, в бою просчитывают ответные ходы.":"They weigh risk, cover their armies and calculate replies in battle.","Считают угрозы по всей карте, защищают флаг, в бою просчитывают на несколько ходов вперёд.":"They track threats across the whole map, defend the flag and calculate several moves ahead in battle.","Боты":"Bots","Количество:":"Number:","со следующей партии":"from the next game","Расставьте 4 поместья и 2 бастиона на своей земле (слева внизу). Остальные игроки ничего не видят.":"Place 4 estates and 2 bastions on your land (bottom left). The other players cannot see anything.","Время вышло: все постройки открыты. Первый ход у":"Time is up: all buildings are revealed. The first move belongs to","вас":"you","игрока":"player","🎓 Обучение":"🎓 Tutorial","Время не ограничено":"No time limit","с":"s","Подготовка: расстановка тайная":"Preparation: placement is secret","⚔️ Игра идёт":"⚔️ Game in progress","Ход:":"Turn:","ваш":"your","игрок":"player","Деньги":"Money","🪙 15 монет":"🪙 15 coins","Постройки (нажмите на зелёную клетку)":"Buildings (click a green cell)","Поместье:":"Estate:","Бастион:":"Bastion:","вертикально":"vertical","горизонтально":"horizontal","Нажмите на поставленную постройку, чтобы убрать её.":"Click a placed building to remove it.","Армии (до 5 мест, нажмите армию, затем юнита)":"Armies (up to 5 slots; click an army, then a unit)","Выбранного полководца поставьте на клетку своего замка (зелёные клетки). Капитан сам встаёт на порт.":"Place the selected commander on a cell of your castle (green cells). The captain goes to the port by himself.","Резерв юнитов":"Unit reserve","Сброс (погибшие)":"Discard (fallen)","пока пусто":"empty so far","Готов":"Ready","Журнал":"Log","Кинжал могут носить только королева и генерал.":"Only the queen and the general can carry the dagger.","Чужой король":"Enemy king","Время вышло: постройки открыты.":"Time is up: buildings are revealed.","Недостающее расставил компьютер.":"The computer placed what was missing.","Игра началась.":"The game has begun.","зелёный":"green","синий":"blue","белый":"white","красный":"red","Вы (":"You (","Игрок":"Player","теряете":"lose","теряет":"loses","мон":"coin(s)","(получает":"(receives",": не хватает":": not enough","мон., платит армией.":"coins, pays with an army.","теряете юнита из резерва:":"lose a unit from the reserve:","теряет юнита из резерва:":"loses a unit from the reserve:","платит юнитом из гарнизона бастиона:":"pays with a unit from the bastion garrison:","теряете юнита из армии (":"lose a unit from the army (","теряет юнита из армии (":"loses a unit from the army (","теряете всю армию:":"lose the whole army:","теряет всю армию:":"loses the whole army:","выбыл: не хватило монет.":"is out: not enough coins.","Капитан погиб, с ним погибли все на корабле.":"The captain died, and everyone on the ship died with him.","Кинжал погибшего полководца исчез.":"The dagger of the fallen commander vanished.","Армия без полководца осталась в бастионе и продолжает его удерживать.":"The army without a commander stayed in the bastion and keeps holding it.","выбыл. Его королевство, армии и цвет переходят к":"is out. Their kingdom, armies and colour pass to","вам":"you","игроку":"player","выбыл, его земля стала нейтральной.":"is out, their land became neutral.","💀 Ваш король пал. Вы выбыли.":"💀 Your king has fallen. You are out.","🏆 Победа! Все соперники выбыли.":"🏆 Victory! All opponents are out.","Вы сожгли":"You burned","сжёг":"burned","поместье: выплата":"estate: payment","мон.":"coins","Вы заняли":"You occupied","занял":"occupied","бастион.":"bastion.","Флаг захвачен!":"Flag captured!","Вы объявили":"You declared","объявил":"declared","нападение на":"an attack on","вашу армию":"your army","армию игрока":"the army of player","Кинжал!":"Dagger!",") убит":") is killed",", вся армия на флаге погибла.":", the whole army on the flag perished.","Фаза сражений.":"Battle phase.","⚔ Фаза 2: сражения. Объявлено нападений:":"⚔ Phase 2: battles. Attacks declared:","Бой отменён: армии уже не соприкасаются.":"Battle cancelled: the armies are no longer adjacent.","откупился от":"bought off","нападающ.":"attacker(s).","Остальные сражаются.":"The others fight.","не откупился. Начинается бой.":"did not buy off. The battle begins.","Защитник откупился от всех и отступил.":"The defender bought off everyone and withdrew.","Защитник откупился от всех и отступил. Боя не будет.":"The defender bought off everyone and withdrew. There will be no battle.","🛡 На помощь в защите пришла армия:":"🛡 An army came to help defend:","вы":"you","Бой:":"Battle:","против":"vs","Долго никто никого не бьёт: ничья.":"Nobody has struck anyone for a long time: a draw.","Оба проиграли: платит тот, кто выбыл первым.":"Both lost: the one who was eliminated first pays.","Вы победили":"You won","Победил игрок":"Player won:","в бою.":"the battle.","Бой закончился ничьёй.":"The battle ended in a draw.","Бой закончился без победителя.":"The battle ended with no winner.","Соперники согласились на ничью.":"The opponents agreed to a draw.","Соперники отказались от ничьей: бой ещё идёт активно.":"The opponents declined a draw: the battle is still active.","Соперники отказались от ничьей. Можно предложить снова, когда несколько ходов подряд пройдут без потерь.":"The opponents declined a draw. You can offer again after several moves in a row without losses.","🏃 Сбежать":"🏃 Flee","Порт:":"Port:","ничей":"unclaimed","(занят капитаном игрока":"(occupied by the captain of player","Гарнизон:":"Garrison:","юнит":"unit","(ваш)":"(yours)","(игрок":"(player","Своё поместье занято армией: пока она здесь стоит, его не захватить":"Your estate is occupied by an army: while it stands here, it cannot be captured","Поместье занято армией":"The estate is occupied by an army","Запас на флаге: полководец подбирает юнитов, встав на флаг":"Stock on the flag: a commander picks up units by standing on the flag","Армия на корабле: высадиться можно на соседнюю с кораблём клетку суши, и не в ход посадки.":"Army on a ship: it can land on a land cell next to the ship, but not on the turn it boarded.","На эту армию объявлено нападение: она стоит на месте до боя.":"An attack has been declared on this army: it stays in place until the battle.","Эта армия уже напала в этот ход: после нападения ходить нельзя.":"This army has already attacked this turn: it cannot move after attacking.","Эта армия уже ходила в этот ход.":"This army has already moved this turn.","Восстановленный полководец ходит только со следующего хода.":"A revived commander can move only from the next turn.","Армия ходит по прямой или по диагонали, в одном направлении, без поворота.":"An army moves in a straight line or diagonally, in one direction, without turning.","Это край карты.":"This is the edge of the map.","Капитан ходит только по воде.":"The captain moves only on water.","Клетка":"The cell","— вода: сухопутная армия в воду не заходит, кроме клеток бастиона. Перепрыгивать нельзя.":"is water: a land army does not enter water except bastion cells. Jumping over is not allowed.","В этом бастионе стоит гарнизон соперника: обе клетки бастиона закрыты для чужих армий. На него нельзя ни нападать, ни заходить.":"This bastion holds an enemy garrison: both bastion cells are closed to other armies. You can neither attack it nor enter it.","Сгоревшее поместье — препятствие.":"A burned estate is an obstacle.","Здесь стоят неподвижные юниты соперника без полководца: это препятствие.":"Immobile enemy units without a commander stand here: this is an obstacle.","Клетку занимает армия соперника. Чтобы напасть, встаньте рядом по стороне и нажмите «Напасть».":"This cell is occupied by an enemy army. To attack, stand beside it (by a side) and press “Attack”.","На пути стоит армия соперника: перепрыгивать нельзя.":"An enemy army is in the way: you cannot jump over it.","Проходить через свою армию или ставить две армии на одну клетку вне замка нельзя.":"You cannot pass through your own army or put two armies on one cell outside the castle.","В чужой замок заходят по одной клетке за ход: дальше идти нельзя.":"You enter an enemy castle one cell per turn: you cannot go further.","Здесь лежат ваши юниты: армия останавливается, чтобы их забрать.":"Your units lie here: the army stops to pick them up.","Слишком далеко: отсюда армия ходит не дальше":"Too far: from here the army moves no further than","клетки":"cells","клеток":"cells","(на своей и нейтральной земле до 3, на чужой до 2, в чужом замке 1; капитан по воде до 2).":"(up to 3 on your own and neutral land, up to 2 on enemy land, 1 in an enemy castle; the captain up to 2 on water).","Сюда ходить нельзя.":"You cannot move here.","Сюда нельзя:":"Not allowed here:","Нападение объявлено. Нажмите «Конец хода»: остальные игроки сделают свои ходы, и только потом начнутся сражения (фаза 2).":"Attack declared. Press “End turn”: the other players make their moves, and only then do the battles begin (phase 2).","Гарнизон оставлен:":"Garrison left:","Юнит возвращён в запас.":"The unit was returned to the stock.","Гарнизон оставлен в бастионе:":"Garrison left in the bastion:","Юнит оставлен на поместье: он стоит там и не даёт занять клетку.":"The unit was left on the estate: it stands there and prevents the cell from being taken.","На корабле. Высадка: нажмите зелёную клетку у берега (не в ход посадки).":"On a ship. To land: click a green cell by the shore (not on the turn of boarding).","Присоединиться к нападению":"Join the attack","Напасть":"Attack","🗡️ Кинжал:":"🗡️ Dagger:","⛵ Сесть на корабль":"⛵ Board the ship","🏠 Оставлены на клетке:":"🏠 Left on the cell:","нажмите, чтобы забрать в армию":"click to take into the army","🛡 В гарнизоне:":"🛡 In the garrison:","↔ Передать юнита:":"↔ Transfer a unit:","Раунд":"Round","Фаза 1: ходы по карте":"Phase 1: moves on the map","Фаза 2: сражения":"Phase 2: battles","Ходит:":"Moves:","Ходят соперники. Сражения начнутся после хода последнего игрока. Объявлено нападений:":"The opponents are moving. Battles start after the last player's move. Attacks declared:","Монеты":"Coins","Баланс монет":"Coin balance","Раунд, уже: получено":"This round so far: received",", потрачено":", spent","(прошлый раунд: +":"(last round: +","Ожидаемый доход за ход:":"Expected income per turn:","(захваченные бастионы врагов:":"(captured enemy bastions:",", порты:":", ports:","Ожидаемый расход:":"Expected expense:","(ваши бастионы у врага:":"(your bastions held by the enemy:",", содержание армий вне замка:":", upkeep of armies outside the castle:","Итого за ход:":"Total per turn:","Расстановка":"Placement","Выберите свободный угол поля: нажмите на подсвеченную зону.":"Choose a free corner of the field: click the highlighted zone.","Нажмите фигуру, затем клетку своей зоны. Нажмите на поставленную, чтобы убрать.":"Click a piece, then a cell of your zone. Click a placed piece to remove it.","Расставить остальных случайно":"Place the rest randomly","Готово":"Done","Расставляется соперник…":"The opponent is placing…","Бой":"Battle","Ваш ход: нажмите фигуру и зелёную клетку.":"Your move: click a piece and a green cell.","Ходит соперник…":"The opponent is moving…","Победа: убить полководца (золотая рамка) или встать на шатёр. Проигравшие не могут атаковать, они бегут за край поля, победитель их догоняет.":"Win by killing the commander (gold frame) or standing on the tent. Losers cannot attack; they run off the edge of the field and the winner chases them.","🤝 Предложить ничью":"🤝 Offer a draw","ходов без потерь:":"moves without losses:","На вас напали":"You are under attack","Откупиться от нападающего: 1 монета за каждого игрока.":"Buy off the attacker: 1 coin per player.","У вас монет:":"Your coins:","Откупиться от игрока":"Buy off player","— заплатить 1 мон.":"— pay 1 coin","🛡 Помощь в защите.":"🛡 Help in defence.","Рядом стоит ваша армия: если она поможет, в бою будут две ваши армии как одна сторона.":"Your army stands nearby: if it helps, two of your armies will fight as one side.","Не помогает":"Does not help","Поможет":"Helps","Сражаться":"Fight","Продолжить":"Continue","Ваш ход":"Your turn","Нажмите армию, затем зелёную клетку. Рамка жёлтого цвета: перестановка внутри замка.":"Click an army, then a green cell. A yellow frame means a rearrangement inside the castle.","Конец хода":"End turn","Мои армии":"My armies","на корабле":"on a ship","защита":"defence","⚔ напала, ход сделан":"⚔ attacked, move done","⏳ выкуплен: ходов нет, пойдёт со следующего хода":"⏳ bought off: no moves, will move from the next turn","✔ ход сделан":"✔ move done","Нажмите юнита в армии выбранного полководца:":"Click a unit in the army of the selected commander:","он вернётся в запас.":"it will return to the stock.","он останется гарнизоном бастиона.":"it will remain as the bastion garrison.","он останется на поместье и не даст занять клетку.":"it will stay on the estate and prevent the cell from being taken.","— нажмите юнита, чтобы посадить в армию":"— click a unit to put it into the army","— в армии нет места":"— there is no room in the army","Запас (":"Stock (","— погибших можно вернуть выкупом (3 мон.), см. «Сброс» ниже":"— the fallen can be revived by ransom (3 coins), see “Discard” below","· выкуп 3 мон.":"· ransom 3 coins","🪦 Армия без полководца":"🪦 Army without a commander","Принадлежит:":"Belongs to:","Юниты:":"Units:","нет":"none","🗡 Кинжал":"🗡 Dagger","Неподвижное препятствие. Подобрать может только свой полководец, зайдя на клетку.":"An immobile obstacle. Only its own commander can pick it up by stepping onto the cell.","Бастион":"Bastion","— территория":"— territory","ничья":"nobody's","ваша":"yours","Захвачен:":"Captured by:","🛡 Гарнизон (":"🛡 Garrison (",", Кинжал":", Dagger","— юнитов:":"— units:","⚑ Армия без полководца (":"⚑ Army without a commander (","Пусто":"Empty","⚔ Битва королевств":"⚔ Battle of Kingdoms","Стратегическая игра на 15×15 клеток":"A strategy game on a 15×15 grid","1. Одиночная игра":"1. Single player","2. Сетевая игра":"2. Online game","3. Обучение":"3. Tutorial","4. Справка":"4. Help","📋 Задание":"📋 Task","☰ Меню":"☰ Menu","Сетевая игра появится позже. Пока можно играть против ботов или пройти обучение.":"Online play will come later. For now you can play against bots or take the tutorial.","✕ Закрыть":"✕ Close","Справка":"Help","Цель игры":"Goal of the game","Остаться последним королевством. Игрок выбывает, если погиб его король или враг встал на его флаг 🚩 в углу карты. Земля, постройки и армии выбывшего достаются победителю.":"Be the last kingdom standing. A player is out if their king dies or an enemy stands on their flag 🚩 in the corner of the map. The land, buildings and armies of the eliminated player go to the victor.","Подготовка":"Preparation","Расставьте на своей земле 4 поместья и 2 бастиона (бастион занимает 2 клетки).":"Place 4 estates and 2 bastions on your land (a bastion takes 2 cells).","Соберите армии короля, королевы, генерала (до 5 мест у каждой). Кинжал носит только королева или генерал.":"Build the armies of the king, queen and general (up to 5 slots each). Only the queen or the general can carry the dagger.","Поставьте полководцев в свой замок. Капитан сам встаёт на порт.":"Place the commanders in your castle. The captain goes to the port by himself.","Ход по карте":"Moving on the map","Армия ходит по прямой или по диагонали на 3 клетки по своей земле (на 2 по чужой, на 1 по чужому замку), без поворота. Через другие армии ходить нельзя.":"An army moves in a straight line or diagonally up to 3 cells on its own land (2 on enemy land, 1 in an enemy castle), without turning. You cannot pass through other armies.","Внутри своего замка полководцев можно бесплатно переставлять в любой момент.":"Inside your own castle you may rearrange commanders for free at any time.","Армия вне замка, которая не ходила в этот ход, платит 1 монету содержания.":"An army outside the castle that did not move this turn pays 1 coin of upkeep.","Два полководца не могут стоять на одной клетке.":"Two commanders cannot stand on the same cell.","Нападение и бой":"Attack and battle","Чтобы напасть, встаньте рядом (по стороне) с вражеской армией и нажмите «Напасть». После нападения армия уже не ходит.":"To attack, stand next to an enemy army (by a side) and press “Attack”. After attacking, the army cannot move.","Защищающийся может откупиться: 1 монета за каждого нападающего игрока. Иначе начинается бой на поле 8×8.":"The defender may buy off: 1 coin per attacking player. Otherwise a battle begins on an 8×8 field.","В бою побеждает тот, кто убьёт полководца или захватит шатёр. Проигравший платит 3 монеты, остатки армии бегут за край поля.":"In battle the winner is whoever kills the commander or captures the tent. The loser pays 3 coins and the remains of the army run off the edge of the field.","В бою у края поля фигура может сбежать кнопкой «🏃 Сбежать».":"In battle, a piece at the edge of the field can flee with the “🏃 Flee” button.","Бой на флаге замка: гибель полководца или шатра сразу уничтожает армию.":"Battle on the castle flag: the death of the commander or the tent immediately destroys the army.","Кинжал 🗡":"Dagger 🗡","Королева или генерал с кинжалом, стоя рядом с вражеским полководцем, убивает его без боя (кроме короля). Кинжал одноразовый и исчезает, если погиб его носитель.":"A queen or general with a dagger, standing next to an enemy commander, kills them without a battle (except the king). The dagger is single-use and vanishes if its carrier dies.","Корабли ⛵":"Ships ⛵","Капитан плавает по озеру в центре (2 клетки за ход). Армия садится на корабль с соседней клетки, высаживается на берег в один из следующих ходов.":"The captain sails the lake in the centre (2 cells per turn). An army boards the ship from an adjacent cell and lands on the shore on one of the following turns.","Пополнение и выкуп":"Reinforcement and ransom","Полководец на клетке флага может брать юнитов из Запаса.":"A commander on the flag cell can take units from the Stock.","Погибшие попадают в «Сброс». За 3 монеты можно вернуть юнита или полководца: он появится в замке и пойдёт со следующего хода.":"The fallen go to the “Discard”. For 3 coins you can bring back a unit or commander: they appear in the castle and move from the next turn.","Добыча":"Spoils","Враг, вставший на ваше поместье, сжигает его и получает монеты. Вставший на пустой бастион занимает его и получает 1 монету.":"An enemy standing on your estate burns it and receives coins. One standing on an empty bastion occupies it and receives 1 coin.","Понятно":"Got it","Добро пожаловать в обучение!":"Welcome to the tutorial!","Это настоящая игра с одним лёгким ботом. Вы выполните задания по шагам: от расстановки до боя, кинжала и высадки с корабля.":"This is a real game against one easy bot. You will complete tasks step by step: from placement to battle, the dagger and landing from a ship.","Окно с заданием можно закрыть крестиком. Забыли, что делать, нажмите кнопку «📋 Задание» справа внизу.":"You can close the task window with the cross. If you forget what to do, press the “📋 Task” button at the bottom right.","Шаг 1. Поместья":"Step 1. Estates","Нажимайте на":"Click the","мигающие зелёные клетки":"blinking green cells","на своей земле (слева внизу) и поставьте":"on your land (bottom left) and place","4 поместья":"4 estates",". Замок пока не мигает: поместья в него не ставят.":". The castle does not blink yet: estates are not placed in it.","Если враг сожжёт поместье, вы заплатите ему монеты. Нажмите на поставленное поместье, чтобы убрать его.":"If an enemy burns an estate, you pay them coins. Click a placed estate to remove it.","Шаг 2. Бастионы":"Step 2. Bastions","Теперь поставьте":"Now place","2 бастиона":"2 bastions","на мигающие клетки. Бастион занимает две клетки, кнопка «↻» справа поворачивает его.":"on the blinking cells. A bastion takes two cells; the “↻” button on the right rotates it.","В бастионе можно оставить гарнизон: тогда враг не сможет его занять.":"You can leave a garrison in a bastion: then the enemy cannot occupy it.","Шаг 3. Армия королевы":"Step 3. The queen's army","Справа есть список армий. Нажмите строку «Королева» (она станет выделенной), затем нажмите юнитов в блоке «Резерв юнитов». Соберите в армии королевы":"On the right there is a list of armies. Click the “Queen” row (it becomes highlighted), then click units in the “Unit reserve” block. Gather in the queen's army","не меньше 3 юнитов":"at least 3 units","(всего до 5 мест).":"(up to 5 slots in total).","Лёгкие юниты дешевле в потерях, тяжёлые сильнее в бою.":"Light units are cheaper to lose, heavy units are stronger in battle.","Шаг 4. Кинжал":"Step 4. The dagger","Нажмите значок кинжала в резерве, чтобы дать его выбранной армии. Кинжал можно дать":"Click the dagger icon in the reserve to give it to the selected army. The dagger can be given to","королеве или генералу":"the queen or the general","(королю и капитану нельзя).":"(not to the king or the captain).","Кинжал убивает вражеского полководца без боя. Он одноразовый.":"The dagger kills an enemy commander without a battle. It is single-use.","Шаг 5. Армии короля и генерала":"Step 5. The king's and general's armies","Выберите строку «Король», затем «Генерал», и добавьте каждому":"Select the “King” row, then “General”, and add to each","Шаг 6. Полководцы в замок":"Step 6. Commanders into the castle","Нажмите армию в списке («Король», «Королева», «Генерал») и затем зелёную клетку своего замка (угол слева внизу, где флаг 🚩). Поставьте всех троих.":"Click an army in the list (“King”, “Queen”, “General”) and then a green cell of your castle (the bottom-left corner with the flag 🚩). Place all three.","Два полководца на одной клетке стоять не могут.":"Two commanders cannot stand on the same cell.","Шаг 7. Начало игры":"Step 7. Start of the game","Нажмите кнопку":"Press the button","«✔ Готово, начать игру»":"“✔ Done, start the game”","справа. Расстановка соперника тайная, он уже поставил свои армии.":"on the right. The opponent's placement is secret; they have already placed their armies.","Ходы по карте":"Moves on the map","Игроки ходят по очереди. Ваш ход, когда справа написано «Ходит:":"Players move in turn. It is your turn when the right panel says “Moves:","». Пока ходят боты, ждите.":"”. While the bots move, wait.","Дальше каждое задание появляется в начале вашего хода. Если сейчас ход соперника, подождите пару секунд.":"From now on each task appears at the start of your turn. If it is the opponent's turn now, wait a couple of seconds.","Шаг 8. Свободная перестановка в замке":"Step 8. Free rearrangement in the castle","Нажмите на вашего полководца. Клетки с":"Click your commander. Cells with a","жёлтой рамкой":"yellow frame","внутри замка бесплатные: поставьте полководца на любую из них.":"inside the castle are free: place the commander on any of them.","Перестановка в замке не тратит ход, её можно делать сколько угодно раз.":"Rearranging in the castle does not use up a move; you can do it as many times as you like.","Шаг 9. Пополнение армии":"Step 9. Reinforcing the army","Полководец на клетке":"A commander on the","флага 🚩":"flag cell 🚩","(в замке) может брать юнитов из «Запаса». Поставьте полководца на клетку флага (жёлтая рамка), затем нажмите юнита в блоке «Запас» справа.":"(in the castle) can take units from the “Stock”. Place the commander on the flag cell (yellow frame), then click a unit in the “Stock” block on the right.","Для примера мы вернули в запас по паре юнитов.":"For the example we returned a couple of units to the stock.","Шаг 10. Ход армией по карте":"Step 10. Moving an army on the map","Нажмите на любую армию.":"Click any army.","Зелёные клетки":"Green cells","показывают, куда она может пойти: по прямой или диагонали, до 3 клеток, без поворота.":"show where it can go: in a straight line or diagonally, up to 3 cells, without turning.","Сделайте ход на любую зелёную клетку. Лучше выйти из замка, но недалеко.":"Move to any green cell. It is best to leave the castle, but not far.","Шаг 11. Конец хода":"Step 11. End of turn","Армия вне замка, которая не ходила и не участвует в бою, платит 1 монету содержания (списывается перед фазой сражений). Теперь нажмите":"An army outside the castle that did not move and is not in a battle pays 1 coin of upkeep (charged before the battle phase). Now press","«Конец хода»":"“End turn”",": пойдут соперники.":": the opponents will move.","Шаг 12. Нападение":"Step 12. Attack","Рядом с вашей армией появилась слабая армия соперника (красная рамка на карте). Нажмите на вашу армию и в панели справа нажмите «⚔️ Напасть». Кинжалом пока не пользуйтесь: для него будет отдельное задание.":"A weak opponent army has appeared next to your army (red frame on the map). Click your army and press “⚔️ Attack” in the right panel. Do not use the dagger yet: there will be a separate task for it.","После объявления нападения ваша армия ходить не может. Бой начнётся после хода всех игроков.":"After declaring an attack your army cannot move. The battle starts after all players have moved.","Шаг 13. Начало сражения":"Step 13. Start of the battle","Нажмите":"Press",". После хода соперников начнётся фаза сражений. Соперник не откупится, он слишком слаб.":". After the opponents move, the battle phase begins. The opponent will not buy off; they are too weak.","Шаг 14. Расстановка в бою":"Step 14. Placement in battle","Бой идёт на поле 8×8. Выберите":"The battle takes place on an 8×8 field. Choose a","свободный угол":"free corner","(подсвечен), затем нажмите фигуру и клетку своей зоны 3×3. Золотая рамка у полководца, а шатёр защищает армию.":"(highlighted), then click a piece and a cell of your 3×3 zone. The commander has a gold frame, and the tent protects the army.","Лень расставлять? Кнопка «Расставить остальных случайно». Когда все стоят, нажмите «Готово».":"Too lazy to place? Use the “Place the rest randomly” button. When everyone is placed, press “Done”.","Шаг 15. Бой":"Step 15. Battle","Нажмите свою фигуру и зелёную клетку: фигура сходит или бьёт соседнего врага. Побеждает тот, кто":"Click your piece and a green cell: the piece moves or hits a neighbouring enemy. The winner is whoever","убьёт полководца":"kills the commander","(золотая рамка) или":"(gold frame) or","встанет на шатёр":"stands on the tent","Проигравший платит 3 монеты. Остатки его армии бегут к краю поля, победитель может их догнать. У края фигура может сбежать кнопкой «🏃 Сбежать».":"The loser pays 3 coins. The remains of their army run to the edge of the field and the winner may chase them. At the edge a piece can flee with the “🏃 Flee” button.","Бой окончен":"Battle over","Если победили вы, проигравший заплатил вам 3 монеты, а его армия потеряна. Погибшие юниты видны в блоке «Сброс»: за 3 монеты их можно выкупить в замке.":"If you won, the loser paid you 3 coins and their army is lost. The fallen units are visible in the “Discard” block: for 3 coins you can ransom them in the castle.","Шаг 16. Кинжал":"Step 16. The dagger","Рядом с вашим носителем кинжала (армия со значком 🗡) появился вражеский полководец. Нажмите вашу армию с кинжалом и кнопку «🗡️ Кинжал».":"An enemy commander has appeared next to your dagger carrier (the army with the 🗡 icon). Click your army with the dagger and the “🗡️ Dagger” button.","Полководец погибнет без боя, а его армия останется на карте. Кинжал одноразовый, королю он не страшен.":"The commander dies without a battle, and their army stays on the map. The dagger is single-use and harmless to a king.","Шаг 17. Посадка на корабль":"Step 17. Boarding the ship","Ваш корабль (капитан) стоит в порту на озере. Одна из ваших армий поставлена рядом с портом. Нажмите на неё и кнопку «⛵ Сесть на корабль».":"Your ship (captain) stands in the port on the lake. One of your armies is placed next to the port. Click it and the “⛵ Board the ship” button.","Сесть можно только с соседней клетки.":"You can board only from an adjacent cell.","Шаг 18. Плывём":"Step 18. Sailing","Нажмите на капитана (корабль) и на зелёную клетку воды: корабль плывёт по прямой на 2 клетки. Армия плывёт вместе с ним. Держитесь недалеко от берега. Потом нажмите «Конец хода»: высаживаться можно уже в следующий ход.":"Click the captain (ship) and a green water cell: the ship sails straight up to 2 cells. The army sails with it. Stay near the shore. Then press “End turn”: you can land on the next turn.","Шаг 19. Высадка":"Step 19. Landing","Высаживаться можно в следующий ход после посадки. Нажмите армию на корабле и зелёную клетку суши рядом с кораблём.":"You can land on the turn after boarding. Click the army on the ship and a green land cell next to the ship.","Нет зелёных клеток? Сначала подведите корабль к берегу, а потом высаживайте.":"No green cells? First move the ship to the shore, then land.","Вы освоили основы!":"You have learned the basics!","Победа в игре":"Victory in the game",": захватить флаг 🚩 в углу соперника (встать на него армией), либо убить его короля.":": capture the flag 🚩 in an opponent's corner (stand on it with an army) or kill their king.","Деньги: за содержание армий вне замка, за выкуп погибших и за потери в боях. Следите за монетами.":"Money: spent on upkeep of armies outside the castle, on ransoming the fallen and on losses in battle. Keep an eye on your coins.","Выберите: продолжить играть в этой партии до победы или выйти в главное меню.":"Continue this game to victory or press “☰ Menu” below the map and start a “Single player” game.","✅ Задание выполнено!":"✅ Task completed!","Приступить":"Start","Игра выполнит это задание сама":"The game will do this task by itself","Сделать за меня":"Do it for me","Задание":"Task","из":"of",": ждём подходящего момента (ход соперников)…":": waiting for the right moment (opponents' turn)…","Новичок":"Novice","Лёгкие боты, подсказки на каждом шаге":"Easy bots, hints at every step","Опытный":"Experienced","Нормальные боты, без подсказок":"Normal bots, no hints","Профессионал":"Professional","Сильные боты, без подсказок":"Strong bots, no hints","⚙ Настройки":"⚙ Settings","🔊 Звук":"🔊 Sound","Вкл":"On","Выкл":"Off","🎨 Тема":"🎨 Theme","☀ Светлая":"☀ Light","🌙 Тёмная":"🌙 Dark","🎮 Режим игры":"🎮 Game mode",". Действует со следующей партии.":". Takes effect from the next game.","Настройки":"Settings","5. Настройки":"5. Settings","Армии":"Armies","Нажмите армию, затем юнитов в резерве (до 5 мест). Нажмите юнита в армии, чтобы вернуть его в резерв.":"Click an army, then units in the reserve (up to 5 slots). Click a unit in the army to return it to the reserve.","⚓ встанет в порт":"⚓ will go to the port","✔ в замке":"✔ in the castle","⬜ поставьте в замок":"⬜ place in the castle","Поместья":"Estates","Осталось поставить:":"Left to place:","из 4":"of 4","Бастионы":"Bastions","из 2":"of 2","Вертикально":"Vertical","Горизонтально":"Horizontal","Нажмите на уже поставленную постройку, чтобы убрать её.":"Click an already placed building to remove it.","🎲 Распределить юнитов само":"🎲 Distribute units automatically","✔ Готово, начать игру":"✔ Done, start the game","Чтобы начать, поставьте в замок всех полководцев: осталось":"To start, place all commanders in the castle: remaining","Режим игры (новичок, опытный, профессионал) меняется в ⚙ Настройках.":"The game mode (novice, experienced, professional) is changed in ⚙ Settings.","король":"king","королева":"queen","генерал":"general","Шаг 1 из 3. Расставьте поместья.":"Step 1 of 3. Place the estates.","Осталось:":"Left:",". Нажимайте на мигающие зелёные клетки на вашей земле (слева внизу).":". Click the blinking green cells on your land (bottom left).","Шаг 2 из 3. Расставьте бастионы.":"Step 2 of 3. Place the bastions.",". Бастион занимает две клетки; кнопка «↻» справа меняет его положение.":". A bastion takes two cells; the “↻” button on the right changes its orientation.","Шаг 3 из 3. Распределите армии и расставьте полководцев.":"Step 3 of 3. Distribute the armies and place the commanders.","Сейчас поставьте в замок:":"Now place in the castle:","(мигающие зелёные клетки). Юнитов раздайте справа: нажмите армию, затем юнита в резерве. Капитан встанет в порт сам.":"(blinking green cells). Distribute units on the right: click an army, then a unit in the reserve. The captain will go to the port by himself.","Шаг 3 из 3.":"Step 3 of 3.","Полководцы стоят в замке. Раздайте юнитов по армиям справа (или нажмите «Распределить юнитов само») и нажмите":"The commanders are in the castle. Distribute units among the armies on the right (or press “Distribute units automatically”) and press","«Готово, начать игру»":"“Done, start the game”","Бой.":"Battle.","Расставьте свои фигуры в вашем углу поля (мигающие клетки), затем подтвердите расстановку.":"Place your pieces in your corner of the field (blinking cells), then confirm the placement.","Соперники расставляют фигуры…":"The opponents are placing their pieces…","Ваш ход в бою.":"Your move in battle.","Нажмите свою фигуру, затем зелёную клетку. Встать на клетку врага значит убить его фигуру. Победа: убить полководца врага или захватить его шатёр.":"Click your piece, then a green cell. Stepping onto an enemy cell kills that piece. Win by killing the enemy commander or capturing their tent.","Ход соперника…":"The opponent's move…","На вас напали.":"You are under attack.","Можно откупиться (1 монета каждому нападающему) или принять бой.":"You can buy off (1 coin to each attacker) or accept the battle.","Выбрана армия:":"Army selected:","Зелёные клетки показывают, куда можно пойти. Рядом с вражеской армией появится кнопка «Напасть». Когда закончили, нажмите «Конец хода».":"Green cells show where you can go. Next to an enemy army the “Attack” button appears. When you are done, press “End turn”.","Ваш ход.":"Your turn.","Нажмите свою армию в замке, затем зелёную клетку: армия пойдёт туда. Выводите армии из замка и захватывайте чужие поместья: для этого закончите ход на его клетке. Полководец вне замка, который не ходил, стоит 1 монету в ход.":"Click your army in the castle, then a green cell: the army will go there. Bring armies out of the castle and capture enemy estates: to do so, end your move on its cell. A commander outside the castle that did not move costs 1 coin per turn.","Нажмите свою армию, затем зелёную клетку. Закончили — нажмите «Конец хода».":"Click your army, then a green cell. When finished, press “End turn”.","Ходят соперники. Дождитесь своего хода.":"The opponents are moving. Wait for your turn.","Идут сражения.":"Battles are in progress.","зелёного":"green","синего":"blue","белого":"white","красного":"red","Ход":"Turn","Игра окончена":"Game over","⚔ Бой:":"⚔ Battle:","⚔ Идут сражения":"⚔ Battles in progress","ваш ход":"your turn","Четыре королевства, один флаг в каждом замке. Расставьте армии, захватывайте чужие земли и защитите свой флаг.":"Four kingdoms, one flag in each castle. Deploy your armies, conquer other lands and defend your flag.","Играть":"Play","Новичкам":"For beginners","Обучение":"Tutorial","за 5 минут":"in 5 minutes","правила кратко":"quick rules","звук, тема, режим":"sound, theme, mode","По сети":"Online","скоро":"soon","Зелёное королевство побеждает в первой битве":"The green kingdom wins the first battle","Войти в королевство":"Enter the kingdom","Победа!":"Victory!","Королевство пало":"The kingdom has fallen","Сыграть ещё":"Play again","В меню":"Menu","Язык":"Language","🌐 Язык":"🌐 Language","Ваша":"Your","Ваш":"Your","Вам":"You","Игрок ":"Player ","Игрока":"Player","Дальше":"Next","Игрок 1, выберите карту":"Player 1, pick a card","Боты получают оставшиеся цвета":"Bots take the remaining colours","Сетевая игра":"Multiplayer","👥 На одном устройстве":"👥 On one device","Игроки ходят по очереди за одним экраном. Карта не поворачивается: каждый играет в своём углу.":"Players take turns at one screen. The map doesn't rotate: everyone plays in their own corner.","Люди:":"People:","Боты:":"Bots:","Начать":"Start","🌐 Через интернет":"🌐 Online","Игра с друзьями по логину, открытые и закрытые комнаты.":"Play with friends by login, open and private rooms.","Подключиться":"Connect","Временно недоступно: сервер для игры через интернет ещё готовится.":"Temporarily unavailable: the online server is still being prepared.","Назад":"Back","Ходит ":"Turn: ","Расстановка. Остальные игроки, отвернитесь.":"Setup. Other players, look away.","Передайте устройство этому игроку. Остальные, не подглядывайте.":"Hand the device to this player. Others, no peeking.","Я готов":"I'm ready","✔ Готово, передать ход":"✔ Done, pass the turn","с друзьями":"with friends","Все игроки-люди выбыли.":"All human players are out.","Победил ":"Winner: ",", выберите карту":", pick a card","Деньги соперников скрыты":"Opponents' coins are hidden","Скрыто":"Hidden","Соперники":"Opponents","С каким количеством ботов играть?":"How many bots do you want to play against?","бот":"bot","бота":"bots","Всего игроков в партии: вы и боты":"Players in the game: you plus the bots","Ботов в партии:":"Bots in the game:"," пал — бой сразу окончен.":" has fallen — the battle ends at once.","👑 Король ":"👑 The king of ","На поле боя уже 4 армии — союзник не может прийти на помощь.":"There are already 4 armies on the battlefield — the ally can't join the defence.","🛡 На вас напали три армии — на поле боя уже 4 армии, ваша соседняя армия не сможет помочь.":"🛡 Three armies attacked you — the battlefield already holds 4 armies, so your neighbouring army can't help.","Юнит оставлен на клетке. Теперь можно забрать в армию другого.":"Unit left on the cell. Now you can take another one into the army.","он останется на этой клетке, а взамен можно забрать другого (ниже).":"it stays on this cell, and you can take another one instead (below).","армия полная: сначала нажмите юнита в армии выше, чтобы оставить его здесь, затем заберите нужного":"army is full: first tap a unit in the army above to leave it here, then take the one you need","Полководец на <b>любой клетке своего замка</b> может брать юнитов из «Запаса» и возвращать их туда. Поставьте полководца, например, на клетку флага (жёлтая рамка), затем нажмите юнита в блоке «Запас» справа.":"A commander on <b>any cell of their own castle</b> can take units from the «Reserve» and return them there. Move a commander, for example, onto the flag cell (yellow frame), then tap a unit in the «Reserve» block on the right.","Армия вне замка, которая не ходила в этот ход, платит 1 монету содержания. Не платит, если она напала или на неё напали: она в бою. Новый полководец, выкупленный из отбоя, тоже не платит.":"An army outside the castle that did not move this turn pays 1 coin of upkeep. It doesn't pay if it attacked or was attacked: it is in battle. A commander just ransomed from the discard pile doesn't pay either.","На любой клетке своего замка полководец может брать юнитов из запаса и сдавать их обратно в запас.":"On any cell of their own castle a commander can take units from the reserve and hand them back to it.","Полководец на любой клетке своего замка может брать юнитов из Запаса и сдавать их обратно.":"A commander on any cell of their own castle can take units from the Stock and hand them back.","Запас: полководец подбирает и сдаёт юнитов на любой клетке своего замка":"Stock: a commander takes and returns units on any cell of their own castle"};
 Object.assign(D,{") убита":") is killed","✋ Соперник отказался от ничьей: бой ещё идёт активно. Соперник согласится, если 8 ходов подряд пройдут без потерь (сейчас: ":"✋ The opponent declined the draw: the battle is still active. They will agree after 8 moves in a row without losses (now: ","✋ Соперник отказался от ничьей.":"✋ The opponent declined the draw.","Бой ещё идёт активно: соперник согласится, если 8 ходов подряд пройдут без потерь.":"The battle is still active: the opponent will agree after 8 moves in a row without losses."});
+Object.assign(D,{"за ход": "per turn", "Не ходили:": "Not moved:", "Флаг под охраной": "Flag guarded", "Враг в": "Enemy", "ходе от флага": "turn from your flag", "ходах от флага": "turns from your flag", "Угрозы": "Threats", "пробел": "space", "Меню": "Menu", "Монеты и сколько прибавится или убудет за ход. Нажмите, чтобы открыть подробный баланс": "Coins and the expected change per turn. Click to open the detailed balance", "Армии, которые ещё могут ходить. Нажмите или Tab, чтобы выбрать следующую": "Armies that can still move. Click or press Tab to select the next one", "Ваша армия стоит на флаге: чтобы его взять, врагу придётся напасть": "Your army stands on the flag: the enemy has to attack to take it", "Ближайшая вражеская армия": "The nearest enemy army", "может встать на ваш флаг. Нажмите, чтобы показать угрозы": "can step onto your flag. Click to show threats", "Показать угрозы (клавиша T): красным закрашена ваша земля, куда враг дойдёт за один ход; рамкой обведены ваши армии, на которые смогут напасть; цифра — общая сила врагов, способных напасть на эту клетку": "Show threats (T key): red marks your land the enemy can reach in one turn; a frame marks your armies that can be attacked; the number is the total strength of enemies able to attack that square", "Сила:": "Strength:", "рядом его армия, может помочь": "his army is next to it and may help", "Убивает без боя. Кинжал одноразовый.": "Kills without a battle. The dagger is single-use.", "Сесть на корабль": "Board the ship", "Высадиться можно со следующего хода": "You can land from the next turn", "Оставить гарнизон": "Leave a garrison", "Юнит останется в бастионе и удержит его": "The unit stays in the bastion and holds it", "Оставить юнита на поместье": "Leave a unit on the estate", "Враг не сможет встать сюда и сжечь его": "The enemy won't be able to step here and burn it", "Забрать гарнизон в армию": "Take the garrison into the army", "Пополнить из запаса": "Refill from reserve", "Возьмёт самых сильных, пока есть места (в запасе:": "Takes the strongest units while there is room (in reserve:", "Передать юнита": "Hand over a unit", "Снять выбор (Esc)": "Deselect (Esc)", "В армию взято юнитов:": "Units taken into the army:", "Сгоревшее поместье": "Burned estate", "Теперь это препятствие.": "It is an obstacle now.", "Ваше поместье": "Your estate", "ценность": "value", "Враг, вставший сюда, сожжёт его и заберёт": "An enemy stepping here burns it and takes", "Оставьте здесь юнита, чтобы прикрыть.": "Leave a unit here to cover it.", "Поместье": "Estate", "Встаньте сюда, чтобы сжечь его и получить его ценность в монетах (от 1 до 4).": "Step here to burn it and get its value in coins (1 to 4).", "Ваш флаг": "Your flag", "Если враг встанет сюда, вы выбываете. Держите армию рядом.": "If an enemy steps here, you are out. Keep an army nearby.", "Флаг": "Flag", "Встаньте сюда, и этот игрок выбывает.": "Step here and this player is out.", "Флаг выбывшего игрока.": "Flag of an eliminated player.", "Ваш замок": "Your castle", "Здесь полководцы переставляются бесплатно и берут юнитов из запаса.": "Here commanders reposition for free and take units from the reserve.", "Чужой замок": "Enemy castle", "По нему армия идёт только на 1 клетку за ход.": "An army moves only 1 square per turn here.", "Сила врагов, которые смогут напасть": "Strength of enemies able to attack", "Пока вы ждали": "While you were waiting", "Скрыть": "Hide", "Ходы соперников:": "Opponents' moves:", "ход": "move", "хода": "moves", "ходов": "moves", "вошла на вашу землю.": "entered your land.", "вошёл на вашу землю.": "entered your land.", "подошла к вашему флагу.": "approached your flag.", "подошёл к вашему флагу.": "approached your flag.", "Ничего важного не случилось.": "Nothing important happened.", "Скрыть стрелки ходов": "Hide move arrows", "👁 Показать ходы на карте": "👁 Show moves on the map", "⛵ на корабле": "⛵ on a ship", "🛡 ждёт боя": "🛡 awaiting battle", "⚔ напала, ход сделан": "⚔ attacked, move done", "⏳ пойдёт со следующего хода": "⏳ moves from the next turn", "🏰 в замке": "🏰 in the castle", "⚓ в своём порту": "⚓ in home port", "в поле": "in the field", "можно ходить": "can move", "если не пойдёт": "if it stays", "Сила в бою: полководец и юниты": "Battle strength: commander and units", "Армия вне замка, которая не ходила, платит 1 монету в конце хода": "An army outside the castle that didn't move pays 1 coin at the end of the turn", "итого за ход:": "net per turn:", "Ходов без потерь:": "Moves without losses:", "После 8 ходов без потерь соперник согласится на ничью.": "After 8 moves without losses the opponent will agree to a draw.", "⚠ Ваш полководец под ударом! Уведите его или закройте.": "⚠ Your commander is under attack! Move him away or cover him.", "⚠ Враг может встать на ваш шатёр!": "⚠ The enemy can step onto your tent!", "🎯 Можно взять полководца или шатёр врага: это победа!": "🎯 You can take the enemy commander or tent: that's a win!", "· полководец": "· commander", "Ходит": "Moves", "по диагонали": "diagonally", "по прямой: вперёд, назад и вбок": "straight: forward, back and sideways", "на 1 клетку": "1 square", "на 1–2 клетки": "1–2 squares", "Фигуры не перепрыгивает, бьёт, вставая на клетку врага.": "It can't jump over pieces and captures by stepping onto an enemy's square.", "По диагонали фигура всегда остаётся на клетках одного цвета (": "Moving diagonally, the piece always stays on squares of one colour (", "тёмных": "dark", "светлых": "light", "): фигуры на клетках другого цвета ей не достать.": "): it can't reach pieces on the other colour.", "Если полководец погибнет, армия проиграет бой.": "If the commander dies, the army loses the battle.", "Нажмите свою фигуру (с золотым свечением): здесь появится, как она ходит. Красная рамка: фигура под ударом, красное кольцо: её можно взять.": "Click your piece (with a golden glow) to see how it moves. A red frame means the piece is under attack, a red ring means it can be captured."});
 const RX=[
  [/· выкуп (\d+) мон\./g,'· ransom $1 coins'],
  [/(\d+) из (\d+)/g,'$1 of $2'],
